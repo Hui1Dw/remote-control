@@ -6,6 +6,7 @@
  * ../../无线控制帧协议.md. Input values are taken only from the processed,
  * debounced public state objects. USART1 is used as the primary E34 link:
  * PA9/PA10 are TX/RX and PA8 (AUX) must be high before a frame is submitted.
+ * USART1 TX is interrupt-driven; the static TX buffer stays valid until complete.
  */
 #include "wireless_control.h"
 
@@ -185,13 +186,13 @@ void WirelessControl_Init(void)
   debug.wireless.diagnostics.tx_success_count = 0U;
   debug.wireless.diagnostics.tx_error_count = 0U;
   debug.wireless.diagnostics.tx_busy_skip_count = 0U;
-  debug.wireless.diagnostics.last_tx_status = HAL_OK;
+  debug.wireless.diagnostics.last_tx_status = 0U;
   debug.wireless.last_frame_valid = 0U;
 }
 
 void WirelessControl_Update(void)
 {
-  HAL_StatusTypeDef status;
+  uint8_t status;
   uint32_t now = Bsp_NowMs();
 
   if ((now - wireless_control_tx_tick) < WIRELESS_CONTROL_TX_PERIOD_MS)
@@ -202,7 +203,8 @@ void WirelessControl_Update(void)
   /* Do not catch up with bursts after a delayed loop or a busy module. */
   wireless_control_tx_tick = now;
 
-  if (WirelessControl_TxReady() == 0U)
+  /* AUX 低：模块还在空中发送。TxBusy：上一帧 UART IT 尚未发完。都不覆盖缓冲。 */
+  if ((WirelessControl_TxReady() == 0U) || (Board_E34_1_TxBusy() != 0U))
   {
     debug.wireless.diagnostics.tx_busy_skip_count++;
     return;
@@ -210,14 +212,13 @@ void WirelessControl_Update(void)
 
   WirelessControl_BuildFrame(wireless_control_tx_frame);
   WirelessControl_UpdateDebugFrame(wireless_control_tx_frame);
-  status = (Board_E34_1_Transmit(wireless_control_tx_frame,
-                                 WIRELESS_CONTROL_FRAME_SIZE,
-                                 WIRELESS_CONTROL_UART_TIMEOUT_MS) == 0U)
-               ? HAL_OK
-               : HAL_ERROR;
+  /* static wireless_control_tx_frame 必须保持到 USART1 TX 完成回调。 */
+  status = Board_E34_1_Transmit(wireless_control_tx_frame,
+                                WIRELESS_CONTROL_FRAME_SIZE,
+                                WIRELESS_CONTROL_UART_TIMEOUT_MS);
   debug.wireless.diagnostics.last_tx_status = status;
 
-  if (status == HAL_OK)
+  if (status == 0U)
   {
     debug.wireless.diagnostics.tx_success_count++;
     wireless_control_sequence++;

@@ -28,8 +28,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "bsp.h"
 #include "board.h"
+#include "app.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -100,14 +100,10 @@ int main(void)
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
   Board_Init();
-  if (Joystick_Init() != HAL_OK)
+  if (!App_Init())
   {
     Error_Handler();
   }
-
-  uint32_t joystick_sample_tick = Bsp_NowMs();
-
-  WirelessControl_Init();
 
   /*
    * 三个 E34 无线模块的 M0/M1 均在 gpio.c 初始化为输出低电平，
@@ -128,16 +124,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    if ((Bsp_NowMs() - joystick_sample_tick) >= 10U)
-    {
-      joystick_sample_tick += 10U;
-      /* 100 Hz input scan. WirelessControl_Update() sends separately at 50 Hz. */
-      (void)Joystick_Update();
-      ToggleSwitch_Update();
-      Button_Update();
-    }
-
-    WirelessControl_Update();
+    App_Loop();
   }
   /* USER CODE END 3 */
 }

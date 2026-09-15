@@ -51,12 +51,14 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_gpio.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_usart.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Board/Src/board.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app.c
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Board/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Inc
 )
 
 # Add project symbols (macros)

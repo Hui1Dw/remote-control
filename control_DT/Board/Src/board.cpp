@@ -7,7 +7,7 @@
 namespace
 {
 BSP_n::GPIO_c e34_1_aux{AUX_GPIO_Port, AUX_Pin};
-BSP_n::USART_c e34_1_uart{&huart1, BSP_n::USART_c::TxType_t::BLOCK};
+BSP_n::USART_c e34_1_uart{&huart1, BSP_n::USART_c::TxType_t::IT};
 } /* namespace */
 
 extern "C" void Board_Init(void)
@@ -18,6 +18,11 @@ extern "C" void Board_Init(void)
 extern "C" uint8_t Board_E34_1_AuxReady(void)
 {
     return e34_1_aux.is_set() ? 1U : 0U;
+}
+
+extern "C" uint8_t Board_E34_1_TxBusy(void)
+{
+    return e34_1_uart.is_busy() ? 1U : 0U;
 }
 
 extern "C" uint8_t Board_E34_1_Transmit(const uint8_t *data, uint16_t size, uint32_t timeout_ms)

@@ -41,7 +41,7 @@ typedef struct
 
   struct
   {
-    WirelessControlDiagnostics_t diagnostics;          /* E34-1 发送成功/失败/忙跳过统计 */
+    WirelessControlDiagnostics_t diagnostics;          /* E34-1 提交成功/失败/忙跳过统计；last_tx_status 0=成功 */
     uint8_t last_frame[WIRELESS_CONTROL_FRAME_SIZE];   /* 最近一次组装的 14 字节控制帧 */
     uint8_t last_frame_valid;                           /* 1=至少成功组过一帧 */
   } wireless;                                          /* E34-1 / USART1 发送诊断 */

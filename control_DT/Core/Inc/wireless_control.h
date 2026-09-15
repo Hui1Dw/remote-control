@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "main.h"
+#include <stdint.h>
 
 #define WIRELESS_CONTROL_FRAME_SIZE  14U
 
@@ -13,14 +13,15 @@ extern "C" {
  * @brief Runtime counters and most recent transmit result for E34-1 control frames.
  *
  * These variables are intended for debugger observation. A skipped frame means
- * the E34 AUX pin was low when the 50 Hz transmission slot arrived.
+ * the E34 AUX pin was low, or USART1 IT 发送尚未完成, when the 50 Hz
+ * transmission slot arrived.
  */
 typedef struct
 {
-  uint32_t tx_success_count;          /* UART 提交成功次数，正常约每 20 ms +1 */
-  uint32_t tx_error_count;            /* UART 提交失败次数 */
-  uint32_t tx_busy_skip_count;        /* E34 AUX 为低而跳过本发送周期的次数 */
-  HAL_StatusTypeDef last_tx_status;   /* 最近一次 HAL_UART_Transmit 返回值，0=HAL_OK */
+  uint32_t tx_success_count;   /* UART 提交成功次数，正常约每 20 ms +1 */
+  uint32_t tx_error_count;     /* UART 提交失败次数 */
+  uint32_t tx_busy_skip_count; /* AUX 为低或 USART1 仍在发送而跳过本周期的次数 */
+  uint8_t last_tx_status;      /* 最近一次提交结果，0=成功 */
 } WirelessControlDiagnostics_t;
 
 /**
@@ -34,9 +35,10 @@ void WirelessControl_Init(void);
 /**
  * @brief Send one latest-input control frame every 20 ms when E34-1 is ready.
  *
- * The function is non-blocking while waiting for the next transmission slot or
- * for AUX to become ready. The actual UART transfer is blocking and takes
- * about 15 ms at the current 9600 bps setting.
+ * The function is non-blocking: waiting for the next slot, AUX, or USART1 IT
+ * completion all return immediately. The 14-byte UART transfer itself also no
+ * longer blocks the CPU; HAL_UART_Transmit_IT keeps the static TX buffer until
+ * the complete callback.
  */
 void WirelessControl_Update(void);
 

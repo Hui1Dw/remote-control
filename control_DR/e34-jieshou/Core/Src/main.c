@@ -21,14 +21,8 @@
 #include <stdint.h>
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "e34_rx.h"
-#include "uart2_rx.h"
-#include "uart3_rx.h"
-#include "rx_dispatcher.h"
-#include "receiver_control.h"
-#include "debug.h"
-#include "bsp.h"
 #include "board.h"
+#include "app.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -66,36 +60,12 @@ static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_USART3_UART_Init(void);
 /* USER CODE BEGIN PFP */
-static void Wireless_Aux_Update(void);
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-/*
- * USART1/2/3 remain connected to the three redundant E34 modules.
- * ReceiverControl keeps one protocol parser per UART, so bytes from different
- * radio links can never be combined into a false control frame.
- */
-static void Wireless_Aux_Update(void)
-{
-  /* PA4 is the AUX pin of the USART2 E34 module. */
-  debug.aux_usart2 = Board_Usart2_AuxReady();
-  /* PB3 is now USART2_TX.  The AUX pin for the USART1 module was not supplied. */
-  debug.aux_usart1 = 0U;
-}
 
-static void rx_dispatch_handler(uint8_t src, uint8_t byte)
-{
-  if (src > RX_SRC_USART3)
-  {
-    return;
-  }
-
-  debug.uart[src].rx_last = byte;
-  debug.uart[src].rx_count++;
-  ReceiverControl_PushByte(src, byte);
-}
 /* USER CODE END 0 */
 
 /**
@@ -136,22 +106,10 @@ int main(void)
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
   Board_Init();
-
-  RX_Dispatcher_Init();
-  RX_Dispatcher_RegisterHandler(rx_dispatch_handler);
-
-  uart1_rx_inst.huart = &huart1;
-  E34_RX_Init();
-
-  uart2_rx_inst.huart = &huart2;
-  UART2_RX_Init();
-
-  uart3_rx_inst.huart = &huart3;
-  UART3_RX_Init();
-
-  /* Start with a safe output until a complete, calibrated control frame arrives. */
-  ReceiverControl_Init();
-  Wireless_Aux_Update();
+  if (!App_Init())
+  {
+    Error_Handler();
+  }
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -161,12 +119,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    E34_RX_Poll();
-    UART2_RX_Poll();
-    UART3_RX_Poll();
-    RX_Dispatcher_Poll();
-    Wireless_Aux_Update();
-    ReceiverControl_Poll();
+    App_Loop();
   }
   /* USER CODE END 3 */
 }

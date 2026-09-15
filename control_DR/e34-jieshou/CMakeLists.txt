@@ -95,11 +95,13 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${PROJECT_SOURCE_DIR}/Bsp/Src/bsp_time.cpp
     ${PROJECT_SOURCE_DIR}/Bsp/Src/bsp_gpio.cpp
     ${PROJECT_SOURCE_DIR}/Board/Src/board.cpp
+    ${PROJECT_SOURCE_DIR}/App/Src/app.c
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${PROJECT_SOURCE_DIR}/Bsp/Inc
     ${PROJECT_SOURCE_DIR}/Board/Inc
+    ${PROJECT_SOURCE_DIR}/App/Inc
 )
 
 # Link directories setup
