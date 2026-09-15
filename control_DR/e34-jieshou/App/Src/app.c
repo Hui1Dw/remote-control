@@ -1,14 +1,14 @@
 #include "app.h"
 
 #include "board.h"
-#include "bsp.h"
+#include "e22_provisioning.h"
 #include "receiver_control.h"
 
 uint8_t App_Init(void)
 {
-  /* 等待无线模块上电稳定，沿用原 E34_RX_Init 的 300 ms + 50 ms。 */
-  Bsp_DelayMs(300U);
-  Bsp_DelayMs(50U);
+  /* 上电写 E22 寄存器；内部已等待模块就绪。失败通道保持 9600，不阻止收包。 */
+  (void)E22Provisioning_Run();
+
   Board_UartStartRx();
 
   /* Start with a safe output until a complete, calibrated control frame arrives. */

@@ -52,6 +52,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_usart.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Board/Src/board.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/e22_provisioning.c
 )
 
 # Add include paths

@@ -1,13 +1,16 @@
 # 控制帧接收机实现说明
 
-本工程保持为**接收机**：USART1、USART2、USART3 仍分别从三个 E34 无线模块接收数据，UART 参数和引脚初始化未更改。原有 `ABCD` / `1234` 急停字符串状态机已经移除。
+本工程保持为**接收机**：USART1、USART2、USART3 分别从三路 E22 接收同一 14 字节控制帧。CubeMX UART 仍从 9600 启动；`App_Init` 先配置 E22 再启动 DMA。原有 `ABCD` / `1234` 急停字符串状态机已经移除。
 UART DMA 的首个空闲接收事件也会正常提交解析，不会再丢弃发送端的第一帧。
 
 ## 实现位置
 
+- `App/Src/app.c`：`App_Init` 调用 `E22Provisioning_Run()`，成功后再 `Board_UartStartRx()`。
+- `App/Src/e22_provisioning.c`：上电一次性写 E22 寄存器；只走 Board，不碰 HAL 句柄。
+- `Board/Src/board.cpp`：`HAL_UARTEx_RxEventCallback` 经 `USART_c` 直接 `ReceiverControl_PushBuffer()`。
 - `Core/Src/control_protocol.c`：14 字节控制帧的流式组帧、固定字段检查、CRC-16/MODBUS、字段合法性检查。
 - `Core/Src/receiver_control.c`：三路独立协议解析、冗余链路选择、失效保护和控制输出。
-- `Core/Src/main.c`：保留原 DMA/UART 接收路径；每个收到的字节进入 `ReceiverControl_PushByte()`。
+- `Core/Src/main.c`：USER CODE 只调用 `Board_Init` / `App_Init` / `App_Loop`。
 
 ## 帧验证
 
@@ -96,13 +99,17 @@ debug.link[0].calibration_valid
 - `debug.safe_reason`：安全状态原因：`1=无在线有效源/超时`，`2=选中链路出现 CRC 错`，`3=选中帧的拨杆、校准位或摇杆范围无效`；
 - `debug.selected_source`：按优先级选出的候选串口，即使因安全检查拒绝输出时也保留其编号，便于定位。
 
-## 当前 UART 硬件引脚
+## 当前 UART / E22 硬件引脚
 
-- USART1：`PA9=TX`、`PA10=RX`，不使用 USART SWAP；
-- USART2：`PB3=TX`、`PB4=RX`；
-- USART3：`PB10=TX`、`PB11=RX`。
+| 串口 | MCU TX | MCU RX | AUX | M1 | M0 |
+|---|---|---|---|---|---|
+| USART1 E22-400 | PA9 | PA10 | PA8 | PB15 | PB14 |
+| USART2 E22-900 | PB3 | PB4 | PB5 | PB6 | PB7 |
+| USART3 E22-230 | PB10 | PB11 | PB2 | PB1 | PB0 |
 
-`PA9` 与旧工程的 I2C2 SCL 复用冲突，因此本固件不初始化 I2C2，避免其重新占用 PA9。原先读取 `PB3` 的 AUX 调试输入也已禁用，因为 `PB3` 现在为 USART2_TX；如需监测该无线模块的 AUX，请提供新的 AUX 实际连接引脚。
+USART1 不使用 SWAP。`PA9` 与旧工程 I2C2 SCL 复用，`PA8` 现为 E22-1 AUX，因此不初始化 I2C2。
+
+Watch `debug.aux_usart1/2/3` 和 `debug.e22`：配置成功后 `mcu_baud[]` 应为 115200，`readback_reg0[]` 约 `0xE6`（230 MHz 可能只保证高 5 位 `0xE0`）。
 
 ## UART 接收诊断变量
 

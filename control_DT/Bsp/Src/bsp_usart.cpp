@@ -81,6 +81,71 @@ bool USART_c::send(const uint8_t *data, uint16_t size, uint32_t timeout_ms)
     return false;
 }
 
+bool USART_c::transmit_block(const uint8_t *data, uint16_t size, uint32_t timeout_ms)
+{
+    if ((handle_ == nullptr) || (data == nullptr) || (size == 0U))
+    {
+        return false;
+    }
+
+    busy_ = false;
+    return HAL_UART_Transmit(handle_, const_cast<uint8_t *>(data), size, timeout_ms) == HAL_OK;
+}
+
+bool USART_c::receive_block(uint8_t *data, uint16_t size, uint32_t timeout_ms)
+{
+    if ((handle_ == nullptr) || (data == nullptr) || (size == 0U))
+    {
+        return false;
+    }
+
+    return HAL_UART_Receive(handle_, data, size, timeout_ms) == HAL_OK;
+}
+
+void USART_c::drain_rx()
+{
+    if (handle_ == nullptr)
+    {
+        return;
+    }
+
+    while (__HAL_UART_GET_FLAG(handle_, UART_FLAG_RXNE) != RESET)
+    {
+        volatile uint32_t discard = handle_->Instance->RDR;
+        (void)discard;
+    }
+
+    __HAL_UART_CLEAR_OREFLAG(handle_);
+    __HAL_UART_CLEAR_FEFLAG(handle_);
+    __HAL_UART_CLEAR_NEFLAG(handle_);
+    __HAL_UART_CLEAR_PEFLAG(handle_);
+}
+
+bool USART_c::set_baud(uint32_t baud)
+{
+    if (handle_ == nullptr)
+    {
+        return false;
+    }
+
+    busy_ = false;
+    (void)HAL_UART_Abort(handle_);
+    handle_->Init.BaudRate = baud;
+    return HAL_UART_Init(handle_) == HAL_OK;
+}
+
+void USART_c::stop_rx()
+{
+    if (handle_ == nullptr)
+    {
+        return;
+    }
+
+    busy_ = false;
+    (void)HAL_UART_Abort(handle_);
+    drain_rx();
+}
+
 void USART_c::handleTxCallback(UART_HandleTypeDef *huart)
 {
     USART_c *instance = FindInstanceByHandle(huart);

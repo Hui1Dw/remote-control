@@ -1,10 +1,10 @@
 /**
  * @file wireless_control.c
- * @brief E34-1 wireless control-frame packer and USART1 sender.
+ * @brief E22-1 wireless control-frame packer and USART1 sender.
  *
  * Frames use the fixed 14-byte format documented in
  * ../../无线控制帧协议.md. Input values are taken only from the processed,
- * debounced public state objects. USART1 is used as the primary E34 link:
+ * debounced public state objects. USART1 is used as the primary E22 link:
  * PA9/PA10 are TX/RX and PA8 (AUX) must be high before a frame is submitted.
  * USART1 TX is interrupt-driven; the static TX buffer stays valid until complete.
  */
@@ -23,7 +23,6 @@
 #define WIRELESS_CONTROL_FRAME_TYPE         0x01U
 #define WIRELESS_CONTROL_PAYLOAD_LENGTH     0x06U
 
-#define WIRELESS_CONTROL_TX_PERIOD_MS       20U
 #define WIRELESS_CONTROL_UART_TIMEOUT_MS    20U
 
 #define WIRELESS_CONTROL_OFFSET_VERSION     2U
@@ -31,6 +30,7 @@
 #define WIRELESS_CONTROL_CRC_INPUT_LENGTH   10U
 
 static uint32_t wireless_control_tx_tick;
+static uint32_t wireless_control_tx_period_ms = WIRELESS_CONTROL_TX_PERIOD_DEFAULT_MS;
 static uint8_t wireless_control_sequence;
 static uint8_t wireless_control_tx_frame[WIRELESS_CONTROL_FRAME_SIZE];
 
@@ -179,6 +179,16 @@ static void WirelessControl_UpdateDebugFrame(const uint8_t *frame)
   debug.wireless.last_frame_valid = 1U;
 }
 
+void WirelessControl_SetTxPeriodMs(uint32_t period_ms)
+{
+  if (period_ms == 0U)
+  {
+    period_ms = WIRELESS_CONTROL_TX_PERIOD_DEFAULT_MS;
+  }
+  wireless_control_tx_period_ms = period_ms;
+  debug.wireless.diagnostics.tx_period_ms = period_ms;
+}
+
 void WirelessControl_Init(void)
 {
   wireless_control_tx_tick = Bsp_NowMs();
@@ -187,6 +197,7 @@ void WirelessControl_Init(void)
   debug.wireless.diagnostics.tx_error_count = 0U;
   debug.wireless.diagnostics.tx_busy_skip_count = 0U;
   debug.wireless.diagnostics.last_tx_status = 0U;
+  debug.wireless.diagnostics.tx_period_ms = wireless_control_tx_period_ms;
   debug.wireless.last_frame_valid = 0U;
 }
 
@@ -195,7 +206,7 @@ void WirelessControl_Update(void)
   uint8_t status;
   uint32_t now = Bsp_NowMs();
 
-  if ((now - wireless_control_tx_tick) < WIRELESS_CONTROL_TX_PERIOD_MS)
+  if ((now - wireless_control_tx_tick) < wireless_control_tx_period_ms)
   {
     return;
   }

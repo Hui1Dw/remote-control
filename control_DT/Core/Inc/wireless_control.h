@@ -8,32 +8,40 @@ extern "C" {
 #include <stdint.h>
 
 #define WIRELESS_CONTROL_FRAME_SIZE  14U
+#define WIRELESS_CONTROL_TX_PERIOD_DEFAULT_MS 20U
+#define WIRELESS_CONTROL_TX_PERIOD_FAST_MS    10U
 
 /**
- * @brief Runtime counters and most recent transmit result for E34-1 control frames.
+ * @brief Runtime counters and most recent transmit result for E22-1 control frames.
  *
  * These variables are intended for debugger observation. A skipped frame means
- * the E34 AUX pin was low, or USART1 IT 发送尚未完成, when the 50 Hz
- * transmission slot arrived.
+ * the E22 AUX pin was low, or USART1 IT 发送尚未完成, when the TX
+ * slot arrived.
  */
 typedef struct
 {
-  uint32_t tx_success_count;   /* UART 提交成功次数，正常约每 20 ms +1 */
+  uint32_t tx_success_count;   /* UART 提交成功次数；USART1 配置成功后约每 10 ms +1 */
   uint32_t tx_error_count;     /* UART 提交失败次数 */
   uint32_t tx_busy_skip_count; /* AUX 为低或 USART1 仍在发送而跳过本周期的次数 */
   uint8_t last_tx_status;      /* 最近一次提交结果，0=成功 */
+  uint32_t tx_period_ms;       /* 当前发送周期。USART1 配置成功为 10，否则 20 */
 } WirelessControlDiagnostics_t;
 
 /**
  * @brief Initialize the control-frame sender state.
  *
- * USART1 and GPIO must already have been initialized. The selected E34-1
+ * USART1 and GPIO must already have been initialized. The selected E22-1
  * module uses USART1 and its AUX pin to determine whether it is ready.
  */
 void WirelessControl_Init(void);
 
 /**
- * @brief Send one latest-input control frame every 20 ms when E34-1 is ready.
+ * @brief 设置控制帧发送周期。USART1 E22 配置成功后用 10 ms，失败保持 20 ms。
+ */
+void WirelessControl_SetTxPeriodMs(uint32_t period_ms);
+
+/**
+ * @brief Send one latest-input control frame when E22-1 is ready.
  *
  * The function is non-blocking: waiting for the next slot, AUX, or USART1 IT
  * completion all return immediately. The 14-byte UART transfer itself also no

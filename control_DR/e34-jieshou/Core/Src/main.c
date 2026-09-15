@@ -97,7 +97,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  /* I2C2 is deliberately not initialized: PA9 is reassigned to USART1_TX. */
+  /* I2C2 is deliberately not initialized: PA9=USART1_TX, PA8=E22-1 AUX. */
   __HAL_RCC_DMA1_CLK_ENABLE();
   __HAL_RCC_DMA2_CLK_ENABLE();
   __HAL_RCC_DMAMUX1_CLK_ENABLE();
@@ -314,24 +314,28 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
-  /* PB14(M0) PB15(M1) 配置为推挽输出 */
-  GPIO_InitStruct.Pin = GPIO_PIN_14 | GPIO_PIN_15;
+  /* 三路 E22：M0/M1 先写低再配成输出，上电即透传（M0=0, M1=0）。
+   * 配置模式由 Board_RadioSetConfigMode 临时拉 M1。不要用 M0=M1=1。 */
+  HAL_GPIO_WritePin(GPIOB,
+                    M0_1_Pin | M1_1_Pin | M0_2_Pin | M1_2_Pin | M0_3_Pin | M1_3_Pin,
+                    GPIO_PIN_RESET);
+
+  GPIO_InitStruct.Pin = M0_1_Pin | M1_1_Pin | M0_2_Pin | M1_2_Pin | M0_3_Pin | M1_3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-  /* M0=0, M1=0 — 全双工模式 */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);  /* M0 */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_RESET);  /* M1 */
 
-  /* 无线模块 AUX 状态输入：AUX=1 表示空闲/可收发，AUX=0 表示忙。 */
-  GPIO_InitStruct.Pin = GPIO_PIN_4;
+  /* AUX 高=空闲可收发，低=忙。USART1 AUX=PA8，USART2 AUX=PB5，USART3 AUX=PB2。 */
+  GPIO_InitStruct.Pin = AUX_1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  HAL_GPIO_Init(AUX_1_GPIO_Port, &GPIO_InitStruct);
 
-  /* PB3/PB4 are reserved for USART2; no USART1-module AUX pin is configured. */
-  /* PA9 is reserved for USART1_TX; I2C2 is not initialized in this firmware. */
+  GPIO_InitStruct.Pin = AUX_2_Pin | AUX_3_Pin;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* PB3/PB4=USART2，PA9/PA10=USART1，PB10/PB11=USART3。I2C2 不初始化。 */
   /* USER CODE END MX_GPIO_Init_2 */
 }
 

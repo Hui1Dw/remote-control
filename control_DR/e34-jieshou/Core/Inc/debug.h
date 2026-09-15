@@ -71,8 +71,22 @@ typedef struct
     uint16_t last_irq_size;        /* 最近一次 IDLE 事件字节数 */
     uint32_t dma_rx_len;           /* 最近一次 DMA 提交给上层的长度 */
     uint32_t start_dma_count;      /* 启动 DMA 接收的累计次数 */
-    uint8_t aux_usart1;            /* USART1 对应模块 AUX；当前未接引脚，固定为 0 */
-    uint8_t aux_usart2;            /* USART2 对应模块 AUX（PA4）：1=高/空闲，0=低/忙 */
+    uint8_t aux_usart1;            /* USART1 模块 AUX=PA8：1=高/空闲，0=低/忙 */
+    uint8_t aux_usart2;            /* USART2 模块 AUX=PB5：1=高/空闲，0=低/忙 */
+    uint8_t aux_usart3;            /* USART3 模块 AUX=PB2：1=高/空闲，0=低/忙 */
+    struct
+    {
+        uint8_t all_ok;                  /* 1=三路 C1 回读均成功并已切 115200 */
+        uint32_t mcu_baud[3];            /* 各路 MCU 工作波特率；失败保持 9600 */
+        uint8_t ok[3];                   /* 各路配置成功，0=USART1 E22-400 */
+        uint8_t readback_ok[3];          /* 各路收到 C1 头 */
+        uint8_t readback_reg0[3];        /* 回读 REG0：高3位 UART，低3位空中速率，目标 0xE6 */
+        uint8_t readback_reg1[3];        /* 回读 REG1，目标 0x00 */
+        uint8_t readback_reg3[3];        /* 回读 REG3，必须 0x00 透传，禁止 0x43 */
+        uint8_t readback_channel[3];     /* 回读 CHAN，目标 23 */
+        uint8_t attempt_count[3];        /* 各路配置尝试次数 */
+        uint8_t last_error[3];           /* 0无 1AUX超时 2TX失败 3RX失败 4回读不符 5改波特失败 */
+    } e22;                             /* 上电一次性 E22 寄存器配置诊断 */
 } Debug_t;
 
 extern volatile Debug_t debug; /* 接收端公开调试状态，Watch 此变量 */

@@ -23,11 +23,11 @@ ADC 采用 12 位、右对齐单端采样，原始结果范围为 **0～4095**�
   - 校准进行时 `debug.joystick.calibration.in_progress` 为 `1`，`debug.joystick.value` 保持为 `0`；
   - 校准完成且中位值有效时，`debug.joystick.calibration.valid` 为 `1`；若无效，可在摇杆回中后调用 `Joystick_StartCalibration()` 重新校准。
 - 最新 ADC 原始值保存在 `debug.joystick.raw`，一阶低通滤波后的值保存在 `debug.joystick.filtered`。
-  - 滤波器每次保留约 75% 上次结果、加入约 25% 新样本，用于降低摇杆抖动；
+  - 滤波器每次保留约 50% 上次结果、加入约 50% 新样本，用于降低摇杆抖动并跟上 10 ms 发送；
   - 两个对象均含 `left_y`、`left_x`、`right_y`、`right_x` 字段。
 - `debug.joystick.value` 保存以各轴记录中心值为零点的线性映射结果：ADC `0` 对应 `-100`，中心值对应 `0`，ADC `4095` 对应 `+100`。
 - 原 PA6 急停按键、外部中断和 `ABCD` / `1234` 测试发送逻辑均已删除；PA6 现作为 SW3 按键输入。
-- `wireless_control.c` 每 20 ms 从 `debug.joystick.value` 读取稳定控制值，经 E34-1 / USART1 发送；中心校准无效时四轴发送为 0，并清除控制帧校准有效位。
+- `wireless_control.c` 从 `debug.joystick.value` 读取稳定控制值，经 E22-1 / USART1 发送。USART1 E22 配置成功后周期为 10 ms，否则 20 ms；中心校准无效时四轴发送为 0，并清除控制帧校准有效位。
 
 ## 四路两档拨杆输入
 

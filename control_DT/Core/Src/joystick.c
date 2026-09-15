@@ -12,7 +12,7 @@
 
 #define JOYSTICK_ADC_MAX_VALUE             4095U
 #define JOYSTICK_NOMINAL_CENTER             2048U
-#define JOYSTICK_FILTER_DIVISOR             4U
+#define JOYSTICK_FILTER_DIVISOR             2U
 #define JOYSTICK_CALIBRATION_SAMPLE_COUNT   32U
 #define JOYSTICK_CENTER_MIN_VALUE           512U
 #define JOYSTICK_CENTER_MAX_VALUE           3583U
@@ -39,14 +39,14 @@ static int16_t Joystick_ClampValue(int16_t value)
 }
 
 /*
- * 一阶低通滤波：保留约 75% 的历史值，叠加约 25% 的新采样值。
- * 用于抑制摇杆电位器抖动和 ADC 量化噪声；该算法不改变有效量程。
+ * 一阶低通滤波：保留约 50% 的历史值，叠加约 50% 的新采样值。
+ * 100 Hz 扫描下时间常数约 10 ms，兼顾手感和 10 ms 发送周期。
  */
 static uint16_t Joystick_FilterSample(uint16_t previous, uint16_t sample)
 {
   int32_t delta = (int32_t)sample - (int32_t)previous;
 
-  /* First-order low-pass filter: 75% old sample + 25% new sample. */
+  /* First-order low-pass filter: 50% old sample + 50% new sample. */
   if (delta > 0)
   {
     return (uint16_t)((int32_t)previous + (delta + (int32_t)JOYSTICK_FILTER_DIVISOR - 1) /

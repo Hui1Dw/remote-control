@@ -44,7 +44,21 @@ typedef struct
     WirelessControlDiagnostics_t diagnostics;          /* E34-1 提交成功/失败/忙跳过统计；last_tx_status 0=成功 */
     uint8_t last_frame[WIRELESS_CONTROL_FRAME_SIZE];   /* 最近一次组装的 14 字节控制帧 */
     uint8_t last_frame_valid;                           /* 1=至少成功组过一帧 */
-  } wireless;                                          /* E34-1 / USART1 发送诊断 */
+  } wireless;                                          /* E22-1 / USART1 发送诊断 */
+
+  struct
+  {
+    uint8_t all_ok;                  /* 1=三路 C1 回读均成功并已切 115200 */
+    uint32_t mcu_baud[3];            /* 各路 MCU 工作波特率；失败保持 9600 */
+    uint8_t ok[3];                   /* 各路配置成功，0=USART1 E22-400 */
+    uint8_t readback_ok[3];          /* 各路收到 C1 头 */
+    uint8_t readback_reg0[3];        /* 回读 REG0：高3位 UART，低3位空中速率，目标 0xE6 */
+    uint8_t readback_reg1[3];        /* 回读 REG1，目标 0x00 */
+    uint8_t readback_reg3[3];        /* 回读 REG3，必须 0x00 透传，禁止 0x43 */
+    uint8_t readback_channel[3];     /* 回读 CHAN，目标 23 */
+    uint8_t attempt_count[3];        /* 各路配置尝试次数 */
+    uint8_t last_error[3];           /* 0无 1AUX超时 2TX失败 3RX失败 4回读不符 5改波特失败 */
+  } e22;                             /* 上电一次性 E22 寄存器配置诊断 */
 } Debug_t;
 
 extern volatile Debug_t debug; /* 发端公开调试状态，Watch 此变量 */

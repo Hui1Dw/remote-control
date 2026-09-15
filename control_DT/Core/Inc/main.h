@@ -98,7 +98,7 @@ void Error_Handler(void);
 #define SW4_Pin GPIO_PIN_7
 #define SW4_GPIO_Port GPIOA
 
-/* E34 模块 1（USART1）控制/状态引脚。 */
+/* E22-400 / USART1：MCU TX=PA9 RX=PA10。配置模式 M0=0、M1=1。 */
 #define AUX_Pin GPIO_PIN_8
 #define AUX_GPIO_Port GPIOA
 #define M1_Pin GPIO_PIN_14
@@ -106,7 +106,7 @@ void Error_Handler(void);
 #define M0_Pin GPIO_PIN_15
 #define M0_GPIO_Port GPIOB
 
-/* E34 模块 2（USART2）控制/状态引脚。 */
+/* E22-900 / USART2：MCU TX=PB4 RX=PB3。 */
 #define AUX_2_Pin GPIO_PIN_5
 #define AUX_2_GPIO_Port GPIOB
 #define M1_2_Pin GPIO_PIN_6
@@ -114,7 +114,7 @@ void Error_Handler(void);
 #define M0_2_Pin GPIO_PIN_7
 #define M0_2_GPIO_Port GPIOB
 
-/* E34 模块 3（USART3）控制/状态引脚。 */
+/* E22-230 / USART3：MCU TX=PB10 RX=PB11。 */
 #define AUX_3_Pin GPIO_PIN_0
 #define AUX_3_GPIO_Port GPIOB
 #define M0_3_Pin GPIO_PIN_1

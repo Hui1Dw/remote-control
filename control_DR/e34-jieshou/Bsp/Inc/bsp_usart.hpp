@@ -11,10 +11,10 @@ namespace BSP_n
 {
 
 /**
- * @brief G431 USART 接收封装。
+ * @brief G431 USART 封装。
  *
- * 当前只做 Receive-to-IDLE DMA。不在构造时启动 DMA，也不使用
- * std::function / 堆。发送留给后续 E22 配置阶段。
+ * 运行时做 Receive-to-IDLE DMA。E22 配置阶段用阻塞收发、清 RX、停 DMA、改波特率。
+ * 不在构造时启动 DMA，也不使用 std::function / 堆。
  */
 class USART_c
 {
@@ -35,6 +35,26 @@ public:
      * 避免半满事件被当成一帧。
      */
     bool start_rx();
+
+    /** 配置前停 DMA/Abort，避免阻塞收发和 DMA 抢 RX。 */
+    void stop_rx();
+
+    /** 阻塞发送，供 E22 配置命令使用。 */
+    bool transmit_block(const uint8_t *data, uint16_t size, uint32_t timeout_ms);
+
+    /** 阻塞接收固定长度，供读 C1 回读。 */
+    bool receive_block(uint8_t *data, uint16_t size, uint32_t timeout_ms);
+
+    /** 丢掉 RX 残留字节并清除错误标志。 */
+    void drain_rx();
+
+    /**
+     * @brief 改 MCU UART 工作波特率。
+     *
+     * 只在 E22 C1 回读确认模块已是新波特率之后调用。
+     * 配置模式必须保持 9600。
+     */
+    bool set_baud(uint32_t baud);
 
     /** DMA 剩余传输计数 NDTR。 */
     uint16_t remaining_count() const;

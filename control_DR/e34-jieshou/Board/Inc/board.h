@@ -7,6 +7,8 @@ extern "C" {
 
 #include <stdint.h>
 
+#define BOARD_RADIO_COUNT 3U
+
 /**
  * @brief 绑定本板三路 E22 USART 与 AUX。
  *
@@ -14,13 +16,13 @@ extern "C" {
  */
 void Board_Init(void);
 
-/* USART2 对应模块 AUX=PA4。高电平表示模块空闲。USART1 AUX 本板未引出。 */
+/* USART2 对应模块 AUX=PB5。高电平表示模块空闲。 */
 uint8_t Board_Usart2_AuxReady(void);
 
 /**
  * @brief 启动三路 Receive-to-IDLE DMA。
  *
- * 须在无线模块上电稳定之后调用。回调里会重新启动 DMA。
+ * 须在无线模块上电稳定、E22 配置完成之后调用。回调里会重新启动 DMA。
  */
 void Board_UartStartRx(void);
 
@@ -30,6 +32,37 @@ void Board_UartStartRx(void);
  * 协议解析已在 UART 回调里完成；主循环只看现场计数和失联保护。
  */
 void Board_UartUpdateDebug(void);
+
+/**
+ * @brief 进入/退出 E22 配置模式。
+ *
+ * enable=1：M0=0、M1=1（配置模式，UART 固定 9600）。
+ * enable=0：M0=0、M1=0（透传）。
+ */
+void Board_RadioSetConfigMode(uint8_t index, uint8_t enable);
+
+/** 等到 AUX 高并再稳住 2 ms。1=成功，0=超时。 */
+uint8_t Board_RadioWaitAuxHigh(uint8_t index, uint32_t timeout_ms);
+
+void Board_RadioDrainUart(uint8_t index);
+
+/** 阻塞发送。1=成功，0=失败。 */
+uint8_t Board_RadioTransmitBlock(uint8_t index, const uint8_t *data, uint16_t size,
+                                 uint32_t timeout_ms);
+
+/** 阻塞接收固定长度。1=成功，0=失败。 */
+uint8_t Board_RadioReceiveBlock(uint8_t index, uint8_t *data, uint16_t size,
+                                uint32_t timeout_ms);
+
+/**
+ * @brief 改该路 MCU UART 工作波特率。
+ *
+ * 只应在 C1 回读确认模块 UART 已是目标波特率后调用。1=成功，0=失败。
+ */
+uint8_t Board_RadioSetBaud(uint8_t index, uint32_t baud);
+
+/** 配置前停 DMA RX，避免和阻塞收发抢数据。 */
+void Board_RadioStopRx(uint8_t index);
 
 #ifdef __cplusplus
 }

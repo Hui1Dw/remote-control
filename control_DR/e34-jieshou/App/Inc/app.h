@@ -11,7 +11,7 @@ extern "C" {
  * @brief 收端业务入口。
  *
  * CubeMX 生成的 main.c 只在 USER CODE 里调用 Board_Init / App_Init / App_Loop。
- * UART 回调在 Board/USART_c 里直接喂协议解析；App 不再绑定 huart*。
+ * App 上电先配置三路 E22，再启动 DMA 收包；不再绑定 huart*。
  *
  * @return 1=成功，0=失败。
  */

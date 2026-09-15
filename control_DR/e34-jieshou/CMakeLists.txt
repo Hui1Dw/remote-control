@@ -92,6 +92,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${PROJECT_SOURCE_DIR}/Bsp/Src/bsp_usart.cpp
     ${PROJECT_SOURCE_DIR}/Board/Src/board.cpp
     ${PROJECT_SOURCE_DIR}/App/Src/app.c
+    ${PROJECT_SOURCE_DIR}/App/Src/e22_provisioning.c
     # uart_rx.c / e34_rx.c / uart2_rx.c / uart3_rx.c / rx_dispatcher.c
     # 保留作调试旁路，不再编译，避免与 USART_c 抢 HAL 回调。
 )
