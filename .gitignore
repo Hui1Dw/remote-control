@@ -1,0 +1,30 @@
+# Build artifacts
+**/build/
+**/bin/
+**/obj/
+**/out/
+*.o
+*.d
+*.lst
+*.map
+*.elf
+*.hex
+*.bin
+*.a
+*.exe
+
+# STM32CubeMX scratch
+mx.scratch
+
+# IDE / debugger user files
+**/.vscode/launch.json
+**/.eide/log/
+**/.eide.usr.ctx.json
+*.user
+*.jdebug.user
+
+# Editor / OS junk
+*~
+*.swp
+.DS_Store
+Thumbs.db

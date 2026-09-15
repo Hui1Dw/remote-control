@@ -1,0 +1,41 @@
+# WirelessSwitch 无线遥控器发端固件
+
+本工程运行在 STM32G431，正在由原急停发端改造成双摇杆无线遥控器。现阶段已完成四路摇杆 ADC 原始值采样，仍通过 **USART1、USART2、USART3** 连接三路 E34 无线模块；遥控器控制帧协议已在 [`无线控制帧协议.md`](无线控制帧协议.md) 中定义，并已通过 **E34-1 / USART1** 接入无线发送；E34-2、E34-3 目前仍只保留底层配置。
+
+## 当前运行路径
+
+- 活跃入口：`Core/Src/main.c`
+- 摇杆 ADC 初始化：`Core/Src/adc.c`
+- 摇杆采样接口：`Core/Src/joystick.c`
+- 两档拨杆解码：`Core/Src/toggle_switch.c`
+- GPIO 初始化：`Core/Src/gpio.c`
+- UART 初始化：`Core/Src/usart.c`
+- 遥控器输入定义：[`Core/Src/controlIO.md`](Core/Src/controlIO.md)
+- 完整引脚清单：[`IO.md`](IO.md)
+- 调试变量与验收步骤：[`调试文档.md`](调试文档.md)
+- CubeMX 工程：`WireSwitch.ioc`
+- 构建：`cmake --preset Debug && cmake --build --preset Debug`
+
+启动后，程序会校准 ADC，并以 **100 Hz** 采集两只摇杆的四个原始模拟量：PA0、PA1、PA2、PA4。上电后约 **320 ms** 会自动采集各轴中位值，因此这段时间应保持摇杆居中。原始结果保存在 `joystick_raw`，低通滤波结果保存在 `joystick_filtered`（两者范围均为 0～4095）；按各轴记录中位值映射的结果保存在 `joystick_value`（范围 -100～+100，定义均见 `Core/Inc/joystick.h`）。
+
+四路两档拨杆已配置为内部上拉输入，并以 100 Hz 解码为 A 档（`-1`）或 B 档（`1`）；两个触点同为高或同为低均为无效值（`2`），且已进行软件消抖。四个瞬时按键 SW1～SW4 也已配置为内部上拉、低有效输入并完成软件消抖；每次有效按下都会使对应 `button_toggle_state` 在关（`0`）/开（`1`）之间翻转，松手后保持，上电默认全关。输入组包、CRC、E34 发送约束和接收端校验要求已定义在 [`无线控制帧协议.md`](无线控制帧协议.md)。当前代码会将稳定输入组装后经 E34-1 / USART1 发送。
+
+三个 E34 的 `M0/M1` 控制脚仍被配置为低电平（普通通信模式）。原 PA6 急停按键、外部中断及 `ABCD` / `1234` 测试报文已移除；PA6 现用作 SW3 按键输入。
+
+> `WireSwitch.ioc` 已记录 ADC1/ADC2 与四路摇杆引脚；USART2、USART3 及模块 2/3 GPIO 仍有历史手动扩展配置。重新生成 CubeMX 代码前请阅读 [`IO.md`](IO.md)。
+
+## 调试步骤
+
+1. 确认两个摇杆使用 3.3 V 供电，并与 MCU 共地。
+2. 上电后先保持摇杆居中约 320 ms，确认 `joystick_calibration.valid` 变为 `1`；随后在调试器中观察 `joystick_raw`、`joystick_filtered` 和 `joystick_value`。中位的 `joystick_value` 应接近 0，满行程应接近 -100 和 +100。
+3. 在调试器中观察 `toggle_switch_state.switch_1` 至 `switch_4`：A 档为 `-1`，B 档为 `1`；两个触点同时为高或同时为低均会显示无效值 `2`。
+4. 观察 `button_state.sw1` 至 `sw4`：释放为 `0`，按下为 `1`；再观察 `button_toggle_state.sw1` 至 `sw4`，每次有效按下应在 `0` / `1` 间翻转并在松手后保持。物理状态更新经过约 20～30 ms 消抖。
+5. 按 [`无线控制帧协议.md`](无线控制帧协议.md) 验证 E34-1 的 14 字节控制帧、序号、CRC 和接收端失联保护；可在调试器观察 `wireless_control_diagnostics` 统计发送成功、错误和 AUX 忙跳帧。
+
+## 相关文档
+
+- [`Core/Src/controlIO.md`](Core/Src/controlIO.md)：已确认的摇杆 IO、电气约束和采样行为。
+- [`IO.md`](IO.md)：当前代码实际使用的所有 IO 与 CubeMX 注意事项。
+- [`无线控制帧协议.md`](无线控制帧协议.md)：输入稳定值的组包格式、CRC、E34/UART 发送约束及联调验收。
+- `../PowerManage/docs/PowerManage控制逻辑说明.md`：接收、失联和电源状态机。
+- `../wireless_change_channel/`：E34 地址/信道配置专用工程，不是本工程的常规运行路径。
