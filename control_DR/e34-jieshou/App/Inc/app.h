@@ -10,14 +10,15 @@ extern "C" {
 /**
  * @brief 收端业务入口。
  *
- * 本阶段只把 main 循环里的 poll 迁到 App，不接管 UART HAL 回调。
+ * CubeMX 生成的 main.c 只在 USER CODE 里调用 Board_Init / App_Init / App_Loop。
+ * UART 回调在 Board/USART_c 里直接喂协议解析；App 不再绑定 huart*。
  *
  * @return 1=成功，0=失败。
  */
 uint8_t App_Init(void);
 
 /**
- * @brief 主循环一轮：抽三路 DMA 接收、分发协议、更新 AUX 与失联保护。
+ * @brief 主循环一轮：刷新 DMA 现场值 / AUX，并做优先级与失联保护。
  */
 void App_Loop(void);
 

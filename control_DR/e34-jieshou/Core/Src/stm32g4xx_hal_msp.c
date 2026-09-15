@@ -40,9 +40,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-#include "e34_rx.h"
-#include "uart2_rx.h"
-#include "uart3_rx.h"
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/

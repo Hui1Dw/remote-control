@@ -1,3 +1,4 @@
+/* Unused debug bypass: not compiled. USART_c + Board now own UART RX. */
 #ifndef E34_RX_H
 #define E34_RX_H
 

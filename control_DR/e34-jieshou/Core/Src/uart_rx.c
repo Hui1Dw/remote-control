@@ -1,3 +1,4 @@
+/* Unused debug bypass: not compiled. USART_c + Board now own UART RX. */
 #include "uart_rx.h"
 #include "debug.h"
 

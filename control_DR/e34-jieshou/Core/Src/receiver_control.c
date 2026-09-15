@@ -1,6 +1,7 @@
 #include "receiver_control.h"
 #include "bsp.h"
 #include "debug.h"
+#include <stddef.h>
 
 /* Existing emergency receiver priority is retained: USART2 > USART1 > USART3. */
 static const uint8_t receiver_control_priority[3] = {
@@ -209,6 +210,21 @@ void ReceiverControl_PushByte(uint8_t source, uint8_t byte)
     if (entry->unsafe_frame_received != 0U)
     {
         debug.link[source].invalid_control_count++;
+    }
+}
+
+void ReceiverControl_PushBuffer(uint8_t source, const uint8_t *data, uint16_t length)
+{
+    uint16_t i;
+
+    if (data == NULL)
+    {
+        return;
+    }
+
+    for (i = 0U; i < length; ++i)
+    {
+        ReceiverControl_PushByte(source, data[i]);
     }
 }
 

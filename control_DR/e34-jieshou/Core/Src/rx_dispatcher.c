@@ -1,3 +1,4 @@
+/* Unused debug bypass: not compiled. USART_c + Board now own UART RX. */
 #include "rx_dispatcher.h"
 #include <stddef.h>
 

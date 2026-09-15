@@ -61,9 +61,6 @@
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart3;
-#include "e34_rx.h"
-#include "uart2_rx.h"
-#include "uart3_rx.h"
 /* USER CODE END EV */
 
 /******************************************************************************/

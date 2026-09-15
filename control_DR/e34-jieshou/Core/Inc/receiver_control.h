@@ -1,6 +1,10 @@
 #ifndef RECEIVER_CONTROL_H
 #define RECEIVER_CONTROL_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include "control_protocol.h"
 
@@ -31,11 +35,17 @@ typedef struct
 
 void ReceiverControl_Init(void);
 void ReceiverControl_PushByte(uint8_t source, uint8_t byte);
+/* 可在 UART 回调里调用：只解析并更新 debug/源状态，不 Apply。 */
+void ReceiverControl_PushBuffer(uint8_t source, const uint8_t *data, uint16_t length);
 void ReceiverControl_Poll(void);
 
 /* Called when the selected CRC-correct control state changes (not once per frame). */
 void ReceiverControl_Apply(const ReceiverControl_Output *output);
 /* Called on startup, timeout, CRC fault, invalid switch state, or invalid calibration. */
 void ReceiverControl_ApplySafeState(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* RECEIVER_CONTROL_H */
