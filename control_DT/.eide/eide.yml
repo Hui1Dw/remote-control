@@ -6,16 +6,14 @@ packDir: null
 srcDirs:
   - Drivers
   - Core
-  - build
 virtualFolder:
   name: <virtual_root>
   files:
     - path: STM32G431XX_FLASH.ld
     - path: startup_stm32g431xx.s
-    - path: Makefile
   folders: []
 dependenceList: []
-outDir: build
+outDir: build/eide
 miscInfo:
   uid: 99c8e05ee7250d6f907b0ad24bd63b82
 targets:

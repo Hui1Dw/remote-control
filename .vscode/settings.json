@@ -1,3 +1,9 @@
 {
-    "cmake.sourceDirectory": "/home/wudinghui/remote_control/control_DT"
+    "cmake.sourceDirectory": [
+        "${workspaceFolder}/control_DT",
+        "${workspaceFolder}/control_DR/e34-jieshou"
+    ],
+    "cmake.preferredGenerators": [
+        "Ninja"
+    ]
 }

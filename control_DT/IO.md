@@ -23,18 +23,18 @@
 
 | 信号/宏 | 引脚 | ADC 通道 | 当前采样顺序 | 软件字段 |
 |---|---|---|---:|---|
-| 左摇杆 X：`JOY_LEFT_X` | **PA0** | ADC1_IN1 | ADC1 第 1 路 | `joystick_raw.left_x` |
-| 左摇杆 Y：`JOY_LEFT_Y` | **PA1** | ADC1_IN2 | ADC1 第 2 路 | `joystick_raw.left_y` |
-| 右摇杆 X：`JOY_RIGHT_X` | **PA2** | ADC1_IN3 | ADC1 第 3 路 | `joystick_raw.right_x` |
-| 右摇杆 Y：`JOY_RIGHT_Y` | **PA4** | ADC2_IN17 | ADC2 第 1 路 | `joystick_raw.right_y` |
+| 左摇杆 X：`JOY_LEFT_X` | **PA0** | ADC1_IN1 | ADC1 第 1 路 | `debug.joystick.raw.left_x` |
+| 左摇杆 Y：`JOY_LEFT_Y` | **PA1** | ADC1_IN2 | ADC1 第 2 路 | `debug.joystick.raw.left_y` |
+| 右摇杆 X：`JOY_RIGHT_X` | **PA2** | ADC1_IN3 | ADC1 第 3 路 | `debug.joystick.raw.right_x` |
+| 右摇杆 Y：`JOY_RIGHT_Y` | **PA4** | ADC2_IN17 | ADC2 第 1 路 | `debug.joystick.raw.right_y` |
 
-`joystick_filtered` 保存一阶低通滤波后的 ADC 值（75% 上次值、25% 新样本）。`joystick_value` 保存对应的中心校准映射结果（`int16_t`）：ADC `0` → `-100`、自动记录的各轴中位值 → `0`、ADC `4095` → `+100`。上电后约 320 ms 内请保持摇杆居中；期间输出保持为 `0`。当前不包含死区或端点行程校准。
+`debug.joystick.filtered` 保存一阶低通滤波后的 ADC 值（75% 上次值、25% 新样本）。`debug.joystick.value` 保存对应的中心校准映射结果（`int16_t`）：ADC `0` → `-100`、自动记录的各轴中位值 → `0`、ADC `4095` → `+100`。上电后约 320 ms 内请保持摇杆居中；期间输出保持为 `0`。当前不包含死区或端点行程校准。
 
 详细的遥控器输入约束和软件行为见 [`Core/Src/controlIO.md`](Core/Src/controlIO.md)。
 
 ## 四路两档拨杆输入
 
-八个拨杆触点均为 `GPIO_MODE_INPUT` + `GPIO_PULLUP`，通过开关接地后读取低电平。`Core/Src/toggle_switch.c` 每 10 ms 解码一次，结果保存在 `toggle_switch_state`；组包时使用该稳定值，并经 E34-1 / USART1 发送。
+八个拨杆触点均为 `GPIO_MODE_INPUT` + `GPIO_PULLUP`，通过开关接地后读取低电平。`Core/Src/toggle_switch.c` 每 10 ms 解码一次，结果保存在 `debug.toggle_switch.state`；组包时使用该稳定值，并经 E34-1 / USART1 发送。
 
 | 拨杆 | A 触点 / 引脚 | B 触点 / 引脚 | A=低、B=高 | A=高、B=高 | A=高、B=低 | A=低、B=低 |
 |---|---|---|---|---|---|---|
@@ -43,20 +43,20 @@
 | 3 | `A_3` / **PC14** | `B_3` / **PC13** | A 档（`-1`） | 无效（`2`） | B 档（`1`） | 无效（`2`） |
 | 4 | `A_4` / **PA12** | `B_4` / **PA11** | A 档（`-1`） | 无效（`2`） | B 档（`1`） | 无效（`2`） |
 
-`A=高、B=高` 与 `A=低、B=低` 都不是两档拨杆的有效稳定状态，代码将两者标记为 `TOGGLE_SWITCH_POSITION_INVALID`。拨杆状态已进行软件消抖：新的解码状态连续 3 次 100 Hz 扫描一致后才更新稳定值 `toggle_switch_state`，典型延迟约 20～30 ms；直接解码值可通过 `toggle_switch_raw_state` 调试观察。PC13/PC14 已占作 GPIO，不能同时启用 LSE 外部低速晶振。
+`A=高、B=高` 与 `A=低、B=低` 都不是两档拨杆的有效稳定状态，代码将两者标记为 `TOGGLE_SWITCH_POSITION_INVALID`。拨杆状态已进行软件消抖：新的解码状态连续 3 次 100 Hz 扫描一致后才更新稳定值 `debug.toggle_switch.state`，典型延迟约 20～30 ms；直接解码值可通过 `debug.toggle_switch.raw` 调试观察。PC13/PC14 已占作 GPIO，不能同时启用 LSE 外部低速晶振。
 
 ## 四个按键输入
 
-四个按键均使用 `GPIO_MODE_INPUT + GPIO_PULLUP`。默认释放时输入为高电平；按下时触点接地，输入为低电平。`Core/Src/button.c` 在每次 100 Hz 输入扫描中读取并消抖；每次有效按下会翻转对应的锁存状态，组包时使用 `button_toggle_state` 并经 E34-1 / USART1 持续发送。
+四个按键均使用 `GPIO_MODE_INPUT + GPIO_PULLUP`。默认释放时输入为高电平；按下时触点接地，输入为低电平。`Core/Src/button.c` 在每次 100 Hz 输入扫描中读取并消抖；每次有效按下会翻转对应的锁存状态，组包时使用 `debug.button.toggle` 并经 E34-1 / USART1 持续发送。
 
 | 按键 | MCU 引脚 | 位置/用途 | 释放状态 | 按下状态 | 物理消抖字段 | 锁存发送字段 |
 |---|---|---|---|---|---|
-| `SW1` | **PA3** | 右摇杆下方按键 | `BUTTON_RELEASED` (`0`) | `BUTTON_PRESSED` (`1`) | `button_state.sw1` | `button_toggle_state.sw1` |
-| `SW2` | **PA5** | 左摇杆下方按键 | `BUTTON_RELEASED` (`0`) | `BUTTON_PRESSED` (`1`) | `button_state.sw2` | `button_toggle_state.sw2` |
-| `SW3` | **PA6** | 其他按键 | `BUTTON_RELEASED` (`0`) | `BUTTON_PRESSED` (`1`) | `button_state.sw3` | `button_toggle_state.sw3` |
-| `SW4` | **PA7** | 其他按键 | `BUTTON_RELEASED` (`0`) | `BUTTON_PRESSED` (`1`) | `button_state.sw4` | `button_toggle_state.sw4` |
+| `SW1` | **PA3** | 右摇杆下方按键 | `BUTTON_RELEASED` (`0`) | `BUTTON_PRESSED` (`1`) | `debug.button.physical.sw1` | `debug.button.toggle.sw1` |
+| `SW2` | **PA5** | 左摇杆下方按键 | `BUTTON_RELEASED` (`0`) | `BUTTON_PRESSED` (`1`) | `debug.button.physical.sw2` | `debug.button.toggle.sw2` |
+| `SW3` | **PA6** | 其他按键 | `BUTTON_RELEASED` (`0`) | `BUTTON_PRESSED` (`1`) | `debug.button.physical.sw3` | `debug.button.toggle.sw3` |
+| `SW4` | **PA7** | 其他按键 | `BUTTON_RELEASED` (`0`) | `BUTTON_PRESSED` (`1`) | `debug.button.physical.sw4` | `debug.button.toggle.sw4` |
 
-新的按下或释放状态必须连续 **3 次** 100 Hz 扫描一致，才会写入 `button_state`，典型消抖延迟约 **20～30 ms**。每次 `button_state` 从释放变为按下时，对应 `button_toggle_state` 在 `BUTTON_TOGGLE_OFF`（`0`）和 `BUTTON_TOGGLE_ON`（`1`）之间翻转；上电默认全关，松手后锁存状态保持。未消抖的直接读取结果可通过 `button_raw_state.sw1` 至 `sw4` 观察。
+新的按下或释放状态必须连续 **3 次** 100 Hz 扫描一致，才会写入 `debug.button.physical`，典型消抖延迟约 **20～30 ms**。每次 `debug.button.physical` 从释放变为按下时，对应 `debug.button.toggle` 在 `BUTTON_TOGGLE_OFF`（`0`）和 `BUTTON_TOGGLE_ON`（`1`）之间翻转；上电默认全关，松手后锁存状态保持。未消抖的直接读取结果可通过 `debug.button.raw.sw1` 至 `sw4` 观察。
 
 ## E34 无线模块接口
 

@@ -1,33 +1,10 @@
 #include "uart_rx.h"
+#include "debug.h"
 
 #define UART_RX_MAX_INSTANCES 3
 
 static UART_RX_Instance *instances[UART_RX_MAX_INSTANCES];
 static uint8_t instance_count = 0;
-
-volatile uint32_t dbg_dma_rx_len = 0;
-/* Index 0/1/2 corresponds to USART1/USART2/USART3. */
-volatile uint32_t uart_rx_dma_event_count[3] = {0U, 0U, 0U};
-volatile uint32_t uart_rx_dma_byte_count[3] = {0U, 0U, 0U};
-volatile uint16_t uart_rx_last_dma_size[3] = {0U, 0U, 0U};
-volatile uint32_t uart_rx_empty_event_count[3] = {0U, 0U, 0U};
-volatile uint32_t uart_rx_initial_sync_drop_count[3] = {0U, 0U, 0U};
-volatile uint32_t uart_rx_dma_start_ok_count[3] = {0U, 0U, 0U};
-volatile uint32_t uart_rx_dma_start_error_count[3] = {0U, 0U, 0U};
-volatile int32_t  uart_rx_last_dma_start_status[3] = {0, 0, 0};
-volatile uint16_t uart_rx_dma_ndtr[3] = {0U, 0U, 0U};
-volatile uint16_t uart_rx_dma_live_byte_count[3] = {0U, 0U, 0U};
-volatile uint32_t uart_rx_error_callback_count[3] = {0U, 0U, 0U};
-volatile uint32_t uart_rx_last_error_code[3] = {0U, 0U, 0U};
-extern volatile uint8_t dbg_rx1_flag;
-extern volatile uint8_t dbg_rx2_flag;
-extern volatile uint8_t dbg_rx3_flag;
-extern volatile uint8_t dbg_rx_byte_0;
-extern volatile uint8_t dbg_rx_byte_1;
-extern volatile uint8_t dbg_rx_byte_2;
-extern volatile uint8_t dbg_rx_byte_3;
-extern volatile uint16_t dbg_rx_data_len;
-extern volatile uint16_t dbg_irq_size;
 
 static int8_t UART_RX_GetDebugIndex(USART_TypeDef *instance);
 
@@ -59,9 +36,6 @@ void UART_RX_Init(UART_RX_Instance *inst)
     UART_RX_StartDMA(inst);
 }
 
-volatile uint32_t dbg_start_dma_count = 0;
-volatile uint32_t dbg_start_dma_ccr = 0;
-
 void UART_RX_StartDMA(UART_RX_Instance *inst)
 {
     if (inst == NULL || inst->huart == NULL)
@@ -69,7 +43,7 @@ void UART_RX_StartDMA(UART_RX_Instance *inst)
         return;
     }
 
-    dbg_start_dma_count++;
+    debug.start_dma_count++;
 
     /*
      * Use the HAL Receive-to-IDLE mode rather than calculating DMA NDTR in a
@@ -90,16 +64,16 @@ void UART_RX_StartDMA(UART_RX_Instance *inst)
                                            UART_RX_BUF_SIZE);
     if (debug_index >= 0)
     {
-        uart_rx_last_dma_start_status[(uint8_t)debug_index] = (int32_t)status;
+        debug.uart[(uint8_t)debug_index].last_dma_start_status = (int32_t)status;
         if (status == HAL_OK)
         {
-            uart_rx_dma_start_ok_count[(uint8_t)debug_index]++;
-            uart_rx_dma_ndtr[(uint8_t)debug_index] = UART_RX_BUF_SIZE;
-            uart_rx_dma_live_byte_count[(uint8_t)debug_index] = 0U;
+            debug.uart[(uint8_t)debug_index].dma_start_ok_count++;
+            debug.uart[(uint8_t)debug_index].dma_ndtr = UART_RX_BUF_SIZE;
+            debug.uart[(uint8_t)debug_index].dma_live_byte_count = 0U;
         }
         else
         {
-            uart_rx_dma_start_error_count[(uint8_t)debug_index]++;
+            debug.uart[(uint8_t)debug_index].dma_start_error_count++;
         }
     }
 
@@ -131,8 +105,8 @@ void UART_RX_Poll(UART_RX_Instance *inst)
         uint16_t ndtr = (uint16_t)__HAL_DMA_GET_COUNTER(inst->huart->hdmarx);
         if (ndtr <= UART_RX_BUF_SIZE)
         {
-            uart_rx_dma_ndtr[(uint8_t)debug_index] = ndtr;
-            uart_rx_dma_live_byte_count[(uint8_t)debug_index] =
+            debug.uart[(uint8_t)debug_index].dma_ndtr = ndtr;
+            debug.uart[(uint8_t)debug_index].dma_live_byte_count =
                 (uint16_t)(UART_RX_BUF_SIZE - ndtr);
         }
     }
@@ -174,8 +148,8 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 
     if (debug_index >= 0)
     {
-        uart_rx_error_callback_count[(uint8_t)debug_index]++;
-        uart_rx_last_error_code[(uint8_t)debug_index] = huart->ErrorCode;
+        debug.uart[(uint8_t)debug_index].error_callback_count++;
+        debug.uart[(uint8_t)debug_index].last_error_code = huart->ErrorCode;
     }
 
     /* A framing/noise/overrun error aborts Receive-to-IDLE DMA in HAL.  Re-arm
@@ -206,8 +180,8 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 
     if (debug_index >= 0)
     {
-        uart_rx_dma_event_count[(uint8_t)debug_index]++;
-        uart_rx_last_dma_size[(uint8_t)debug_index] = Size;
+        debug.uart[(uint8_t)debug_index].dma_event_count++;
+        debug.uart[(uint8_t)debug_index].last_dma_size = Size;
     }
 
     /* ReceiveToIdle DMA reports only real received bytes.  Keep this guard
@@ -216,7 +190,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
     {
         if (debug_index >= 0)
         {
-            uart_rx_empty_event_count[(uint8_t)debug_index]++;
+            debug.uart[(uint8_t)debug_index].empty_event_count++;
         }
         inst->rx_len = 0U;
         inst->rx_ready = 1U;
@@ -226,21 +200,22 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
     inst->first_frame_done = 1U;
     if (debug_index >= 0)
     {
-        uart_rx_dma_byte_count[(uint8_t)debug_index] += Size;
+        debug.uart[(uint8_t)debug_index].dma_byte_count += Size;
     }
 
-    dbg_dma_rx_len = Size;
+    debug.dma_rx_len = Size;
     inst->rx_len = Size;
     inst->rx_ready = 1U;
 
-    dbg_irq_size = Size;
-    dbg_rx_data_len = Size;
-    dbg_rx_byte_0 = inst->rx_buf[0];
-    dbg_rx_byte_1 = inst->rx_buf[1];
-    dbg_rx_byte_2 = inst->rx_buf[2];
-    dbg_rx_byte_3 = inst->rx_buf[3];
+    debug.last_irq_size = Size;
+    debug.last_rx_len = Size;
+    debug.last_rx_bytes[0] = inst->rx_buf[0];
+    debug.last_rx_bytes[1] = inst->rx_buf[1];
+    debug.last_rx_bytes[2] = inst->rx_buf[2];
+    debug.last_rx_bytes[3] = inst->rx_buf[3];
 
-    if (huart->Instance == USART1) dbg_rx1_flag = 1U;
-    else if (huart->Instance == USART2) dbg_rx2_flag = 1U;
-    else if (huart->Instance == USART3) dbg_rx3_flag = 1U;
+    if (debug_index >= 0)
+    {
+        debug.uart[(uint8_t)debug_index].rx_flag = 1U;
+    }
 }

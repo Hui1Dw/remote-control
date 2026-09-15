@@ -21,22 +21,16 @@ typedef enum
 
 typedef struct
 {
-  ToggleSwitchPosition_t switch_1;
-  ToggleSwitchPosition_t switch_2;
-  ToggleSwitchPosition_t switch_3;
-  ToggleSwitchPosition_t switch_4;
+  ToggleSwitchPosition_t switch_1;  /* 拨杆1：-1=A，1=B，2=无效 */
+  ToggleSwitchPosition_t switch_2;  /* 拨杆2：-1=A，1=B，2=无效 */
+  ToggleSwitchPosition_t switch_3;  /* 拨杆3：-1=A，1=B，2=无效 */
+  ToggleSwitchPosition_t switch_4;  /* 拨杆4：-1=A，1=B，2=无效 */
 } ToggleSwitchState_t;
-
-/* Latest direct contact decode before debounce; useful for debug only. */
-extern volatile ToggleSwitchState_t toggle_switch_raw_state;
-
-/* Latest debounced state for the four two-position switches. */
-extern volatile ToggleSwitchState_t toggle_switch_state;
 
 /*
  * Read all eight input contacts and update switch states.
  * A new raw state must remain unchanged for three consecutive 100 Hz samples
- * (about 30 ms) before it is copied to toggle_switch_state.
+ * (about 30 ms) before it is copied to debug.toggle_switch.state.
  */
 void ToggleSwitch_Update(void);
 

@@ -5,11 +5,15 @@
         }
     ],
     "settings": {
+        "cmake.sourceDirectory": "${workspaceFolder}",
+        "cmake.preferredGenerators": [
+            "Ninja"
+        ],
         "clangd.arguments": [
             "--header-insertion=never"
         ],
         "files.autoGuessEncoding": true,
-        "C_Cpp.default.configurationProvider": "cl.eide",
+        "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
         "C_Cpp.errorSquiggles": "disabled",
         "files.associations": {
             ".eideignore": "ignore",
@@ -31,6 +35,7 @@
     },
     "extensions": {
         "recommendations": [
+            "ms-vscode.cmake-tools",
             "cl.eide",
             "keroc.hex-fmt",
             "xiaoyongdong.srecord",

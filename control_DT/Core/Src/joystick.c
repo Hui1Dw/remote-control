@@ -8,6 +8,7 @@
  */
 #include "joystick.h"
 #include "adc.h"
+#include "debug.h"
 
 #define JOYSTICK_ADC_MAX_VALUE             4095U
 #define JOYSTICK_NOMINAL_CENTER             2048U
@@ -15,11 +16,6 @@
 #define JOYSTICK_CALIBRATION_SAMPLE_COUNT   32U
 #define JOYSTICK_CENTER_MIN_VALUE           512U
 #define JOYSTICK_CENTER_MAX_VALUE           3583U
-
-volatile JoystickRaw_t joystick_raw = {0};
-volatile JoystickRaw_t joystick_filtered = {0};
-volatile JoystickValue_t joystick_value = {0};
-volatile JoystickCalibration_t joystick_calibration = {0};
 
 static uint32_t calibration_sum_left_y;
 static uint32_t calibration_sum_left_x;
@@ -69,15 +65,15 @@ static void Joystick_UpdateFilter(void)
 {
   if (filter_initialized == 0U)
   {
-    joystick_filtered = joystick_raw;
+    debug.joystick.filtered = debug.joystick.raw;
     filter_initialized = 1U;
     return;
   }
 
-  joystick_filtered.left_y = Joystick_FilterSample(joystick_filtered.left_y, joystick_raw.left_y);
-  joystick_filtered.left_x = Joystick_FilterSample(joystick_filtered.left_x, joystick_raw.left_x);
-  joystick_filtered.right_y = Joystick_FilterSample(joystick_filtered.right_y, joystick_raw.right_y);
-  joystick_filtered.right_x = Joystick_FilterSample(joystick_filtered.right_x, joystick_raw.right_x);
+  debug.joystick.filtered.left_y = Joystick_FilterSample(debug.joystick.filtered.left_y, debug.joystick.raw.left_y);
+  debug.joystick.filtered.left_x = Joystick_FilterSample(debug.joystick.filtered.left_x, debug.joystick.raw.left_x);
+  debug.joystick.filtered.right_y = Joystick_FilterSample(debug.joystick.filtered.right_y, debug.joystick.raw.right_y);
+  debug.joystick.filtered.right_x = Joystick_FilterSample(debug.joystick.filtered.right_x, debug.joystick.raw.right_x);
 }
 
 /*
@@ -124,34 +120,34 @@ int16_t Joystick_ScaleRaw(uint16_t raw_value)
 
 static void Joystick_ClearValues(void)
 {
-  joystick_value.left_y = 0;
-  joystick_value.left_x = 0;
-  joystick_value.right_y = 0;
-  joystick_value.right_x = 0;
+  debug.joystick.value.left_y = 0;
+  debug.joystick.value.left_x = 0;
+  debug.joystick.value.right_y = 0;
+  debug.joystick.value.right_x = 0;
 }
 
 static void Joystick_UpdateScaledValues(void)
 {
-  joystick_value.left_y = Joystick_ScaleWithCenter(joystick_filtered.left_y,
-                                                     joystick_calibration.left_y_center);
-  joystick_value.left_x = Joystick_ScaleWithCenter(joystick_filtered.left_x,
-                                                     joystick_calibration.left_x_center);
-  joystick_value.right_y = Joystick_ScaleWithCenter(joystick_filtered.right_y,
-                                                      joystick_calibration.right_y_center);
-  joystick_value.right_x = Joystick_ScaleWithCenter(joystick_filtered.right_x,
-                                                      joystick_calibration.right_x_center);
+  debug.joystick.value.left_y = Joystick_ScaleWithCenter(debug.joystick.filtered.left_y,
+                                                     debug.joystick.calibration.left_y_center);
+  debug.joystick.value.left_x = Joystick_ScaleWithCenter(debug.joystick.filtered.left_x,
+                                                     debug.joystick.calibration.left_x_center);
+  debug.joystick.value.right_y = Joystick_ScaleWithCenter(debug.joystick.filtered.right_y,
+                                                      debug.joystick.calibration.right_y_center);
+  debug.joystick.value.right_x = Joystick_ScaleWithCenter(debug.joystick.filtered.right_x,
+                                                      debug.joystick.calibration.right_x_center);
 }
 
 static uint8_t Joystick_CentersAreValid(void)
 {
-  return (joystick_calibration.left_y_center >= JOYSTICK_CENTER_MIN_VALUE &&
-          joystick_calibration.left_y_center <= JOYSTICK_CENTER_MAX_VALUE &&
-          joystick_calibration.left_x_center >= JOYSTICK_CENTER_MIN_VALUE &&
-          joystick_calibration.left_x_center <= JOYSTICK_CENTER_MAX_VALUE &&
-          joystick_calibration.right_y_center >= JOYSTICK_CENTER_MIN_VALUE &&
-          joystick_calibration.right_y_center <= JOYSTICK_CENTER_MAX_VALUE &&
-          joystick_calibration.right_x_center >= JOYSTICK_CENTER_MIN_VALUE &&
-          joystick_calibration.right_x_center <= JOYSTICK_CENTER_MAX_VALUE);
+  return (debug.joystick.calibration.left_y_center >= JOYSTICK_CENTER_MIN_VALUE &&
+          debug.joystick.calibration.left_y_center <= JOYSTICK_CENTER_MAX_VALUE &&
+          debug.joystick.calibration.left_x_center >= JOYSTICK_CENTER_MIN_VALUE &&
+          debug.joystick.calibration.left_x_center <= JOYSTICK_CENTER_MAX_VALUE &&
+          debug.joystick.calibration.right_y_center >= JOYSTICK_CENTER_MIN_VALUE &&
+          debug.joystick.calibration.right_y_center <= JOYSTICK_CENTER_MAX_VALUE &&
+          debug.joystick.calibration.right_x_center >= JOYSTICK_CENTER_MIN_VALUE &&
+          debug.joystick.calibration.right_x_center <= JOYSTICK_CENTER_MAX_VALUE);
 }
 
 /*
@@ -161,15 +157,15 @@ static uint8_t Joystick_CentersAreValid(void)
  */
 static void Joystick_ProcessCalibration(void)
 {
-  if (joystick_calibration.in_progress == 0U)
+  if (debug.joystick.calibration.in_progress == 0U)
   {
     return;
   }
 
-  calibration_sum_left_y += joystick_filtered.left_y;
-  calibration_sum_left_x += joystick_filtered.left_x;
-  calibration_sum_right_y += joystick_filtered.right_y;
-  calibration_sum_right_x += joystick_filtered.right_x;
+  calibration_sum_left_y += debug.joystick.filtered.left_y;
+  calibration_sum_left_x += debug.joystick.filtered.left_x;
+  calibration_sum_right_y += debug.joystick.filtered.right_y;
+  calibration_sum_right_x += debug.joystick.filtered.right_x;
   calibration_sample_count++;
 
   if (calibration_sample_count < JOYSTICK_CALIBRATION_SAMPLE_COUNT)
@@ -178,19 +174,19 @@ static void Joystick_ProcessCalibration(void)
     return;
   }
 
-  joystick_calibration.left_y_center =
+  debug.joystick.calibration.left_y_center =
       (uint16_t)(calibration_sum_left_y / JOYSTICK_CALIBRATION_SAMPLE_COUNT);
-  joystick_calibration.left_x_center =
+  debug.joystick.calibration.left_x_center =
       (uint16_t)(calibration_sum_left_x / JOYSTICK_CALIBRATION_SAMPLE_COUNT);
-  joystick_calibration.right_y_center =
+  debug.joystick.calibration.right_y_center =
       (uint16_t)(calibration_sum_right_y / JOYSTICK_CALIBRATION_SAMPLE_COUNT);
-  joystick_calibration.right_x_center =
+  debug.joystick.calibration.right_x_center =
       (uint16_t)(calibration_sum_right_x / JOYSTICK_CALIBRATION_SAMPLE_COUNT);
 
-  joystick_calibration.in_progress = 0U;
-  joystick_calibration.valid = Joystick_CentersAreValid();
+  debug.joystick.calibration.in_progress = 0U;
+  debug.joystick.calibration.valid = Joystick_CentersAreValid();
 
-  if (joystick_calibration.valid == 0U)
+  if (debug.joystick.calibration.valid == 0U)
   {
     Joystick_ClearValues();
   }
@@ -204,8 +200,8 @@ void Joystick_StartCalibration(void)
   calibration_sum_right_x = 0U;
   calibration_sample_count = 0U;
 
-  joystick_calibration.in_progress = 1U;
-  joystick_calibration.valid = 0U;
+  debug.joystick.calibration.in_progress = 1U;
+  debug.joystick.calibration.valid = 0U;
   Joystick_ClearValues();
 }
 
@@ -223,19 +219,19 @@ static HAL_StatusTypeDef Joystick_ReadAdc1(void)
   if (status == HAL_OK)
   {
     /* ADC1 rank 1 / PA0 is the physical left X axis. */
-    joystick_raw.left_x = (uint16_t)HAL_ADC_GetValue(&hadc1);
+    debug.joystick.raw.left_x = (uint16_t)HAL_ADC_GetValue(&hadc1);
     status = HAL_ADC_PollForConversion(&hadc1, 10U);
   }
   if (status == HAL_OK)
   {
     /* ADC1 rank 2 / PA1 is the physical left Y axis. */
-    joystick_raw.left_y = (uint16_t)HAL_ADC_GetValue(&hadc1);
+    debug.joystick.raw.left_y = (uint16_t)HAL_ADC_GetValue(&hadc1);
     status = HAL_ADC_PollForConversion(&hadc1, 10U);
   }
   if (status == HAL_OK)
   {
     /* ADC1 rank 3 / PA2 is the physical right X axis. */
-    joystick_raw.right_x = (uint16_t)HAL_ADC_GetValue(&hadc1);
+    debug.joystick.raw.right_x = (uint16_t)HAL_ADC_GetValue(&hadc1);
   }
 
   if (HAL_ADC_Stop(&hadc1) != HAL_OK && status == HAL_OK)
@@ -259,7 +255,7 @@ static HAL_StatusTypeDef Joystick_ReadAdc2(void)
   status = HAL_ADC_PollForConversion(&hadc2, 10U);
   if (status == HAL_OK)
   {
-    joystick_raw.right_y = (uint16_t)HAL_ADC_GetValue(&hadc2);
+    debug.joystick.raw.right_y = (uint16_t)HAL_ADC_GetValue(&hadc2);
   }
 
   if (HAL_ADC_Stop(&hadc2) != HAL_OK && status == HAL_OK)
@@ -308,7 +304,7 @@ HAL_StatusTypeDef Joystick_Update(void)
   Joystick_UpdateFilter();
   Joystick_ProcessCalibration();
 
-  if (joystick_calibration.valid != 0U)
+  if (debug.joystick.calibration.valid != 0U)
   {
     Joystick_UpdateScaledValues();
   }

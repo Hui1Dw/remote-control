@@ -22,6 +22,7 @@ set(MX_Application_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/main.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/adc.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/button.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/debug.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/gpio.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/joystick.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/toggle_switch.c

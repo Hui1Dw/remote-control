@@ -17,23 +17,11 @@ extern "C" {
  */
 typedef struct
 {
-  uint32_t tx_success_count;
-  uint32_t tx_error_count;
-  uint32_t tx_busy_skip_count;
-  HAL_StatusTypeDef last_tx_status;
+  uint32_t tx_success_count;          /* UART 提交成功次数，正常约每 20 ms +1 */
+  uint32_t tx_error_count;            /* UART 提交失败次数 */
+  uint32_t tx_busy_skip_count;        /* E34 AUX 为低而跳过本发送周期的次数 */
+  HAL_StatusTypeDef last_tx_status;   /* 最近一次 HAL_UART_Transmit 返回值，0=HAL_OK */
 } WirelessControlDiagnostics_t;
-
-extern volatile WirelessControlDiagnostics_t wireless_control_diagnostics;
-
-/**
- * @brief Most recently assembled 14-byte control frame, for debugger inspection.
- *
- * This buffer is updated immediately before each USART1 transmit attempt. It is
- * valid when wireless_control_last_frame_valid is nonzero; the bytes use the
- * exact on-wire order specified by the control-frame protocol.
- */
-extern volatile uint8_t wireless_control_last_frame[WIRELESS_CONTROL_FRAME_SIZE];
-extern volatile uint8_t wireless_control_last_frame_valid;
 
 /**
  * @brief Initialize the control-frame sender state.

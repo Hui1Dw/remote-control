@@ -22,6 +22,7 @@
 #include "stm32g4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "debug.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -209,10 +210,6 @@ void SysTick_Handler(void)
  * derive a received length manually from NDTR here: a pending startup IDLE
  * flag can otherwise look like a full 256-byte packet.
  */
-volatile uint32_t uart_rx_irq_count[3] = {0U, 0U, 0U};
-volatile uint32_t uart_rx_error_irq_count[3] = {0U, 0U, 0U};
-volatile uint32_t uart_rx_last_isr[3] = {0U, 0U, 0U};
-
 extern DMA_HandleTypeDef hdma_usart1_rx;
 extern DMA_HandleTypeDef hdma_usart2_rx;
 extern DMA_HandleTypeDef hdma_usart3_rx;
@@ -221,11 +218,11 @@ static void UART_RecordIrq(uint8_t index, UART_HandleTypeDef *huart)
 {
   uint32_t isr = huart->Instance->ISR;
 
-  uart_rx_irq_count[index]++;
-  uart_rx_last_isr[index] = isr;
+  debug.uart[index].irq_count++;
+  debug.uart[index].last_isr = isr;
   if ((isr & (USART_ISR_PE | USART_ISR_FE | USART_ISR_NE | USART_ISR_ORE)) != 0U)
   {
-    uart_rx_error_irq_count[index]++;
+    debug.uart[index].error_irq_count++;
   }
 }
 

@@ -24,25 +24,5 @@ void     UART_RX_RegisterHandler(UART_RX_Instance *inst, UART_RX_FrameHandler ha
 uint32_t UART_RX_GetFrameCount(UART_RX_Instance *inst);
 void     UART_RX_StartDMA(UART_RX_Instance *inst);
 
-/* Per-UART DMA/IDLE diagnostics: indexes 0/1/2 are USART1/USART2/USART3. */
-extern volatile uint32_t uart_rx_dma_event_count[3];
-extern volatile uint32_t uart_rx_dma_byte_count[3];
-extern volatile uint16_t uart_rx_last_dma_size[3];
-extern volatile uint32_t uart_rx_empty_event_count[3];
-/* DMA startup/result diagnostics.  A non-zero error count means that DMA
-   reception never armed or was re-armed unsuccessfully. */
-extern volatile uint32_t uart_rx_dma_start_ok_count[3];
-extern volatile uint32_t uart_rx_dma_start_error_count[3];
-extern volatile int32_t  uart_rx_last_dma_start_status[3];
-/* Live DMA progress: updated in UART_RX_Poll(), useful when sender has no
-   inter-frame IDLE time and thus no RxEvent callback has occurred yet. */
-extern volatile uint16_t uart_rx_dma_ndtr[3];
-extern volatile uint16_t uart_rx_dma_live_byte_count[3];
-/* HAL error diagnostics/recovery. */
-extern volatile uint32_t uart_rx_error_callback_count[3];
-extern volatile uint32_t uart_rx_last_error_code[3];
-extern volatile uint32_t uart_rx_irq_count[3];
-extern volatile uint32_t uart_rx_error_irq_count[3];
-extern volatile uint32_t uart_rx_last_isr[3];
 
 #endif

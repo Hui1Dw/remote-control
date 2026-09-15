@@ -20,14 +20,14 @@ ADC 采用 12 位、右对齐单端采样，原始结果范围为 **0～4095**�
 - 启动时先执行 ADC 单端硬件校准，随后自动开始四轴**中心校准**。
 - 主循环每 **10 ms（100 Hz）** 调用一次 `Joystick_Update()`。
 - 上电后前 **32 个采样周期（约 320 ms）** 会记录四个摇杆的中位值；这段时间请保持两个摇杆处于中位。
-  - 校准进行时 `joystick_calibration.in_progress` 为 `1`，`joystick_value` 保持为 `0`；
-  - 校准完成且中位值有效时，`joystick_calibration.valid` 为 `1`；若无效，可在摇杆回中后调用 `Joystick_StartCalibration()` 重新校准。
-- 最新 ADC 原始值保存在 `joystick_raw`，一阶低通滤波后的值保存在 `joystick_filtered`。
+  - 校准进行时 `debug.joystick.calibration.in_progress` 为 `1`，`debug.joystick.value` 保持为 `0`；
+  - 校准完成且中位值有效时，`debug.joystick.calibration.valid` 为 `1`；若无效，可在摇杆回中后调用 `Joystick_StartCalibration()` 重新校准。
+- 最新 ADC 原始值保存在 `debug.joystick.raw`，一阶低通滤波后的值保存在 `debug.joystick.filtered`。
   - 滤波器每次保留约 75% 上次结果、加入约 25% 新样本，用于降低摇杆抖动；
   - 两个对象均含 `left_y`、`left_x`、`right_y`、`right_x` 字段。
-- `joystick_value` 保存以各轴记录中心值为零点的线性映射结果：ADC `0` 对应 `-100`，中心值对应 `0`，ADC `4095` 对应 `+100`。
+- `debug.joystick.value` 保存以各轴记录中心值为零点的线性映射结果：ADC `0` 对应 `-100`，中心值对应 `0`，ADC `4095` 对应 `+100`。
 - 原 PA6 急停按键、外部中断和 `ABCD` / `1234` 测试发送逻辑均已删除；PA6 现作为 SW3 按键输入。
-- `wireless_control.c` 每 20 ms 从 `joystick_value` 读取稳定控制值，经 E34-1 / USART1 发送；中心校准无效时四轴发送为 0，并清除控制帧校准有效位。
+- `wireless_control.c` 每 20 ms 从 `debug.joystick.value` 读取稳定控制值，经 E34-1 / USART1 发送；中心校准无效时四轴发送为 0，并清除控制帧校准有效位。
 
 ## 四路两档拨杆输入
 
@@ -49,7 +49,7 @@ ADC 采用 12 位、右对齐单端采样，原始结果范围为 **0～4095**�
 | 高 | 低 | B 档 | `TOGGLE_SWITCH_POSITION_B` (`1`) |
 | 低 | 低 | 无效状态（两触点同时接地） | `TOGGLE_SWITCH_POSITION_INVALID` (`2`) |
 
-- 主循环以 **100 Hz** 调用 `ToggleSwitch_Update()`；直接解码值位于 `toggle_switch_raw_state.switch_1` 至 `switch_4`，消抖后的稳定状态位于 `toggle_switch_state.switch_1` 至 `switch_4`。
+- 主循环以 **100 Hz** 调用 `ToggleSwitch_Update()`；直接解码值位于 `debug.toggle_switch.raw.switch_1` 至 `switch_4`，消抖后的稳定状态位于 `debug.toggle_switch.state.switch_1` 至 `switch_4`。
 - 已增加软件消抖：新的 A / B / 无效状态必须连续 **3 次** 100 Hz 扫描一致，才会更新稳定状态，典型延迟约 **20～30 ms**。拨动瞬间的触点抖动不会改变上一稳定档位。
 - PC13、PC14 当前按 GPIO 输入使用；不能同时启用 LSE（32.768 kHz 外部低速晶振）功能。
 
@@ -65,10 +65,10 @@ ADC 采用 12 位、右对齐单端采样，原始结果范围为 **0～4095**�
 | `SW4` | 其他按键 | PA7 | 高电平 / `BUTTON_RELEASED` (`0`) | 低电平 / `BUTTON_PRESSED` (`1`) |
 
 - 主循环以 **100 Hz** 调用 `Button_Update()`。
-- `button_raw_state.sw1` 至 `sw4` 保存直接读取结果；`button_state.sw1` 至 `sw4` 保存消抖后的物理按键状态。
+- `debug.button.raw.sw1` 至 `sw4` 保存直接读取结果；`debug.button.physical.sw1` 至 `sw4` 保存消抖后的物理按键状态。
 - 新的按下或释放状态必须连续 **3 次** 100 Hz 扫描一致才会更新物理状态，典型消抖延迟约 **20～30 ms**。
-- 每次 `button_state` 从释放变为按下时，对应 `button_toggle_state.sw1` 至 `sw4` 在 `BUTTON_TOGGLE_OFF`（`0`）和 `BUTTON_TOGGLE_ON`（`1`）之间翻转；上电均为关，松手后保持。
-- `button_toggle_state` 会参与 E34-1 控制帧的 bit0～bit3，并持续发送，不能将短暂的物理按下状态直接作为控制帧状态。
+- 每次 `debug.button.physical` 从释放变为按下时，对应 `debug.button.toggle.sw1` 至 `sw4` 在 `BUTTON_TOGGLE_OFF`（`0`）和 `BUTTON_TOGGLE_ON`（`1`）之间翻转；上电均为关，松手后保持。
+- `debug.button.toggle` 会参与 E34-1 控制帧的 bit0～bit3，并持续发送，不能将短暂的物理按下状态直接作为控制帧状态。
 
 ## 电气约束
 

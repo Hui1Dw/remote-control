@@ -5,30 +5,13 @@
  * GPIO internal pull-ups keep all buttons high when released. Pressing a
  * button grounds its input and produces BUTTON_PRESSED. Each physical state
  * is debounced over three 100 Hz scans. Every debounced released-to-pressed
- * edge toggles the corresponding button_toggle_state, so a momentary press
+ * edge toggles the corresponding debug.button.toggle, so a momentary press
  * becomes a persistent on/off command for the wireless control frame.
  */
 #include "button.h"
+#include "debug.h"
 
 #define BUTTON_DEBOUNCE_SAMPLES  3U
-
-volatile ButtonState_t button_raw_state = {
-    BUTTON_RELEASED,
-    BUTTON_RELEASED,
-    BUTTON_RELEASED,
-    BUTTON_RELEASED};
-
-volatile ButtonState_t button_state = {
-    BUTTON_RELEASED,
-    BUTTON_RELEASED,
-    BUTTON_RELEASED,
-    BUTTON_RELEASED};
-
-volatile ButtonToggleState_t button_toggle_state = {
-    BUTTON_TOGGLE_OFF,
-    BUTTON_TOGGLE_OFF,
-    BUTTON_TOGGLE_OFF,
-    BUTTON_TOGGLE_OFF};
 
 static ButtonState_t button_candidate_state = {
     BUTTON_RELEASED,
@@ -86,38 +69,38 @@ static void Button_ToggleOnPress(ButtonPosition_t stable_state,
 
 void Button_Update(void)
 {
-  button_raw_state.sw1 = Button_Read(SW1_GPIO_Port, SW1_Pin);
-  button_raw_state.sw2 = Button_Read(SW2_GPIO_Port, SW2_Pin);
-  button_raw_state.sw3 = Button_Read(SW3_GPIO_Port, SW3_Pin);
-  button_raw_state.sw4 = Button_Read(SW4_GPIO_Port, SW4_Pin);
+  debug.button.raw.sw1 = Button_Read(SW1_GPIO_Port, SW1_Pin);
+  debug.button.raw.sw2 = Button_Read(SW2_GPIO_Port, SW2_Pin);
+  debug.button.raw.sw3 = Button_Read(SW3_GPIO_Port, SW3_Pin);
+  debug.button.raw.sw4 = Button_Read(SW4_GPIO_Port, SW4_Pin);
 
-  Button_Debounce(button_raw_state.sw1,
+  Button_Debounce(debug.button.raw.sw1,
                   &button_candidate_state.sw1,
                   &button_candidate_count[0],
-                  &button_state.sw1);
-  Button_Debounce(button_raw_state.sw2,
+                  &debug.button.physical.sw1);
+  Button_Debounce(debug.button.raw.sw2,
                   &button_candidate_state.sw2,
                   &button_candidate_count[1],
-                  &button_state.sw2);
-  Button_Debounce(button_raw_state.sw3,
+                  &debug.button.physical.sw2);
+  Button_Debounce(debug.button.raw.sw3,
                   &button_candidate_state.sw3,
                   &button_candidate_count[2],
-                  &button_state.sw3);
-  Button_Debounce(button_raw_state.sw4,
+                  &debug.button.physical.sw3);
+  Button_Debounce(debug.button.raw.sw4,
                   &button_candidate_state.sw4,
                   &button_candidate_count[3],
-                  &button_state.sw4);
+                  &debug.button.physical.sw4);
 
-  Button_ToggleOnPress(button_state.sw1,
+  Button_ToggleOnPress(debug.button.physical.sw1,
                        &button_previous_state.sw1,
-                       &button_toggle_state.sw1);
-  Button_ToggleOnPress(button_state.sw2,
+                       &debug.button.toggle.sw1);
+  Button_ToggleOnPress(debug.button.physical.sw2,
                        &button_previous_state.sw2,
-                       &button_toggle_state.sw2);
-  Button_ToggleOnPress(button_state.sw3,
+                       &debug.button.toggle.sw2);
+  Button_ToggleOnPress(debug.button.physical.sw3,
                        &button_previous_state.sw3,
-                       &button_toggle_state.sw3);
-  Button_ToggleOnPress(button_state.sw4,
+                       &debug.button.toggle.sw3);
+  Button_ToggleOnPress(debug.button.physical.sw4,
                        &button_previous_state.sw4,
-                       &button_toggle_state.sw4);
+                       &debug.button.toggle.sw4);
 }

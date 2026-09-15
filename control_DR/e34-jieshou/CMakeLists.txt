@@ -11,6 +11,9 @@ cmake_minimum_required(VERSION 3.22)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS ON)
 
 
 # Define the build type
@@ -43,7 +46,7 @@ project(${CMAKE_PROJECT_NAME})
 message("Build type: " ${CMAKE_BUILD_TYPE})
 
 # Enable CMake support for ASM and C languages
-enable_language(C ASM)
+enable_language(C CXX ASM)
 
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME})
@@ -55,7 +58,7 @@ add_subdirectory(cmake/stm32cubemx)
 target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE
     ${CPU_PARAMETERS}
     $<$<COMPILE_LANGUAGE:C>:-std=gnu11>
-    $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++14>
+    $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++14 -fno-rtti -fno-exceptions -fno-threadsafe-statics>
 )
 
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE ${COMMON_DEFINES})
@@ -88,6 +91,15 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${PROJECT_SOURCE_DIR}/Core/Src/rx_dispatcher.c
     ${PROJECT_SOURCE_DIR}/Core/Src/control_protocol.c
     ${PROJECT_SOURCE_DIR}/Core/Src/receiver_control.c
+    ${PROJECT_SOURCE_DIR}/Core/Src/debug.c
+    ${PROJECT_SOURCE_DIR}/Bsp/Src/bsp_time.cpp
+    ${PROJECT_SOURCE_DIR}/Bsp/Src/bsp_gpio.cpp
+    ${PROJECT_SOURCE_DIR}/Board/Src/board.cpp
+)
+
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
+    ${PROJECT_SOURCE_DIR}/Bsp/Inc
+    ${PROJECT_SOURCE_DIR}/Board/Inc
 )
 
 # Link directories setup
@@ -106,4 +118,12 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     m
     c
     gcc
+)
+
+# Single firmware image: build/<preset>/e34-jieshou.elf
+set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES SUFFIX ".elf")
+
+add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${CMAKE_PROJECT_NAME}>
+    COMMENT "Firmware size"
 )

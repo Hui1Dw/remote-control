@@ -28,7 +28,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "bsp.h"
+#include "board.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -98,12 +99,13 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
+  Board_Init();
   if (Joystick_Init() != HAL_OK)
   {
     Error_Handler();
   }
 
-  uint32_t joystick_sample_tick = HAL_GetTick();
+  uint32_t joystick_sample_tick = Bsp_NowMs();
 
   WirelessControl_Init();
 
@@ -126,7 +128,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    if ((HAL_GetTick() - joystick_sample_tick) >= 10U)
+    if ((Bsp_NowMs() - joystick_sample_tick) >= 10U)
     {
       joystick_sample_tick += 10U;
       /* 100 Hz input scan. WirelessControl_Update() sends separately at 50 Hz. */

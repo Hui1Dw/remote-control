@@ -26,6 +26,9 @@
 #include "uart3_rx.h"
 #include "rx_dispatcher.h"
 #include "receiver_control.h"
+#include "debug.h"
+#include "bsp.h"
+#include "board.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -53,27 +56,6 @@ DMA_HandleTypeDef hdma_usart2_rx;
 DMA_HandleTypeDef hdma_usart3_rx;
 
 /* USER CODE BEGIN PV */
-volatile uint8_t  dbg_rx1_flag  = 0;
-volatile uint8_t  dbg_rx1_last  = 0;
-volatile uint32_t dbg_rx1_count = 0;
-volatile uint16_t dbg_dma_len   = 0;
-volatile uint8_t  dbg_rx2_flag  = 0;
-volatile uint8_t  dbg_rx2_last  = 0;
-volatile uint32_t dbg_rx2_count = 0;
-volatile uint8_t  dbg_rx3_flag  = 0;
-volatile uint8_t  dbg_rx3_last  = 0;
-volatile uint32_t dbg_rx3_count = 0;
-
-volatile uint8_t  dbg_rx_byte_0    = 0;
-volatile uint8_t  dbg_rx_byte_1    = 0;
-volatile uint8_t  dbg_rx_byte_2    = 0;
-volatile uint8_t  dbg_rx_byte_3    = 0;
-volatile uint16_t dbg_rx_data_len = 0;
-volatile uint16_t dbg_irq_size    = 0;
-
-/* 无线模块 AUX：1=空闲/可收发，0=忙；供调试器实时观察。 */
-volatile uint8_t wireless_usart2_aux_state = 0U;  /* PA4：PA2/PA3 模块 AUX */
-volatile uint8_t wireless_usart1_aux_state = 0U;  /* PB3：PB6/PB7 模块 AUX */
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -97,35 +79,21 @@ static void Wireless_Aux_Update(void);
  */
 static void Wireless_Aux_Update(void)
 {
-  wireless_usart2_aux_state =
-      (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4) == GPIO_PIN_SET) ? 1U : 0U;
+  /* PA4 is the AUX pin of the USART2 E34 module. */
+  debug.aux_usart2 = Board_Usart2_AuxReady();
   /* PB3 is now USART2_TX.  The AUX pin for the USART1 module was not supplied. */
-  wireless_usart1_aux_state = 0U;
+  debug.aux_usart1 = 0U;
 }
 
 static void rx_dispatch_handler(uint8_t src, uint8_t byte)
 {
-  if (src == RX_SRC_USART1)
-  {
-    dbg_rx1_last = byte;
-    dbg_rx1_count++;
-    dbg_dma_len = uart1_rx_inst.rx_len;
-  }
-  else if (src == RX_SRC_USART2)
-  {
-    dbg_rx2_last = byte;
-    dbg_rx2_count++;
-  }
-  else if (src == RX_SRC_USART3)
-  {
-    dbg_rx3_last = byte;
-    dbg_rx3_count++;
-  }
-  else
+  if (src > RX_SRC_USART3)
   {
     return;
   }
 
+  debug.uart[src].rx_last = byte;
+  debug.uart[src].rx_count++;
   ReceiverControl_PushByte(src, byte);
 }
 /* USER CODE END 0 */
@@ -167,7 +135,8 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
-  
+  Board_Init();
+
   RX_Dispatcher_Init();
   RX_Dispatcher_RegisterHandler(rx_dispatch_handler);
 

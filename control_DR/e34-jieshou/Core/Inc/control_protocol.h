@@ -16,13 +16,13 @@
 
 typedef struct
 {
-    uint8_t sequence;
-    int8_t  left_y;
-    int8_t  left_x;
-    int8_t  right_y;
-    int8_t  right_x;
-    uint8_t switches;
-    uint8_t buttons;
+    uint8_t sequence;  /* 发送端帧序号 SEQ */
+    int8_t  left_y;    /* 左摇杆 Y，有符号 -100～+100 */
+    int8_t  left_x;    /* 左摇杆 X，有符号 -100～+100 */
+    int8_t  right_y;   /* 右摇杆 Y，有符号 -100～+100 */
+    int8_t  right_x;   /* 右摇杆 X，有符号 -100～+100 */
+    uint8_t switches;  /* 拨杆打包：bit1:0=拨杆1 … bit7:6=拨杆4，01=A，10=B */
+    uint8_t buttons;   /* bit0～bit3=SW1～SW4，bit4=校准有效，bit5～7 必须为 0 */
 } ControlProtocol_Frame;
 
 typedef enum

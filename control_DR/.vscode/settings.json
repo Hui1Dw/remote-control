@@ -1,3 +1,6 @@
 {
-    "cmake.sourceDirectory": "/home/wudinghui/急停开关可用版/receive/e34-jieshou"
+    "cmake.sourceDirectory": "${workspaceFolder}/e34-jieshou",
+    "cmake.preferredGenerators": [
+        "Ninja"
+    ]
 }
