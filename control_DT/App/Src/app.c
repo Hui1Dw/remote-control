@@ -15,8 +15,8 @@ uint8_t App_Init(void)
 {
   app_scan_tick = Bsp_NowMs();
 
-  /* Joystick_Init 仍返回 HAL 状态码：0=成功。ADC 隔离放到后续阶段。 */
-  if (Joystick_Init() != 0)
+  /* Joystick_Init 返回 0=成功。ADC 经 Board/BSP 轮询，不暴露 HAL 类型。 */
+  if (Joystick_Init() != 0U)
   {
     return 0U;
   }

@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "main.h"
+#include <stdint.h>
 
 /* Buttons use active-low inputs: released = high, pressed = low. */
 typedef enum

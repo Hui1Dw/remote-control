@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "main.h"
+#include <stdint.h>
 
 typedef struct
 {
@@ -40,10 +40,9 @@ typedef struct
  * 初始化完成后，主循环仍需周期性调用 Joystick_Update()，中心校准才会
  * 收集样本并完成。
  *
- * @retval HAL_OK    ADC 初始化及硬件校准成功。
- * @retval HAL_ERROR ADC 硬件校准失败。
+ * @return 0=成功，非 0=ADC 硬件校准失败。
  */
-HAL_StatusTypeDef Joystick_Init(void);
+uint8_t Joystick_Init(void);
 
 /**
  * @brief 重新开始四轴摇杆中心校准。
@@ -69,15 +68,14 @@ int16_t Joystick_ScaleRaw(uint16_t raw_value);
 /**
  * @brief 执行一次完整的四轴摇杆采样和处理。
  *
- * 依次读取 ADC1 的左 Y、左 X、右 Y，以及 ADC2 的右 X；更新
+ * 经 Board 轮询读取 ADC1 的左 Y、左 X、右 X，以及 ADC2 的右 Y；更新
  * debug.joystick.raw，再进行一阶低通滤波并更新 debug.joystick.filtered。
  * 若中心校准正在进行则累积校准样本；校准有效后，根据滤波结果和
  * 各轴中心值更新 debug.joystick.value（-100～+100）。
  *
- * @retval HAL_OK    四路 ADC 读取及后续处理成功。
- * @retval HAL_ERROR ADC 启动、转换或停止失败。
+ * @return 0=成功，非 0=ADC 启动、转换或停止失败。
  */
-HAL_StatusTypeDef Joystick_Update(void);
+uint8_t Joystick_Update(void);
 
 #ifdef __cplusplus
 }

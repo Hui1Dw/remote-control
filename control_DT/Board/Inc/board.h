@@ -95,6 +95,41 @@ uint8_t Board_RadioSetBaud(uint8_t index, uint32_t baud);
 /** 发端无 DMA RX；Abort 后保证配置收发前 UART READY。 */
 void Board_RadioStopRx(uint8_t index);
 
+#define BOARD_BUTTON_COUNT 4U
+#define BOARD_TOGGLE_COUNT 4U
+
+/**
+ * @brief ADC1/ADC2 单端硬件校准。
+ *
+ * 只保存句柄、不改 CubeMX 通道配置。1=成功，0=失败。
+ */
+uint8_t Board_JoystickCalibrate(void);
+
+/**
+ * @brief 轮询读取四轴摇杆 ADC。
+ *
+ * 顺序与 CubeMX rank 一致：ADC1 左X/左Y/右X，ADC2 右Y。
+ * 1=成功，0=失败。失败时输出值保持不变。
+ */
+uint8_t Board_JoystickReadRaw(uint16_t *left_y, uint16_t *left_x,
+                              uint16_t *right_y, uint16_t *right_x);
+
+/**
+ * @brief 读取低有效瞬时按键。
+ *
+ * index：0=SW1 PA3，1=SW2 PA5，2=SW3 PA6，3=SW4 PA7。
+ * 1=按下（输入为低），0=释放或非法 index。
+ */
+uint8_t Board_ButtonIsPressed(uint8_t index);
+
+/**
+ * @brief 读取拨杆 A/B 触点是否为低。
+ *
+ * index：0～3 对应拨杆 1～4。1=该触点为低，0=高或非法 index。
+ */
+uint8_t Board_ToggleAIsLow(uint8_t index);
+uint8_t Board_ToggleBIsLow(uint8_t index);
+
 #ifdef __cplusplus
 }
 #endif

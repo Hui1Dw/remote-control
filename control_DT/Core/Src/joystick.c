@@ -7,7 +7,7 @@
  * 320 ms，程序会用 32 个滤波样本的平均值作为各轴零点。
  */
 #include "joystick.h"
-#include "adc.h"
+#include "board.h"
 #include "debug.h"
 
 #define JOYSTICK_ADC_MAX_VALUE             4095U
@@ -205,100 +205,41 @@ void Joystick_StartCalibration(void)
   Joystick_ClearValues();
 }
 
-static HAL_StatusTypeDef Joystick_ReadAdc1(void)
+static uint8_t Joystick_ReadRaw(void)
 {
-  HAL_StatusTypeDef status;
+  uint16_t left_y;
+  uint16_t left_x;
+  uint16_t right_y;
+  uint16_t right_x;
 
-  status = HAL_ADC_Start(&hadc1);
-  if (status != HAL_OK)
+  if (Board_JoystickReadRaw(&left_y, &left_x, &right_y, &right_x) == 0U)
   {
-    return status;
-  }
-
-  status = HAL_ADC_PollForConversion(&hadc1, 10U);
-  if (status == HAL_OK)
-  {
-    /* ADC1 rank 1 / PA0 is the physical left X axis. */
-    debug.joystick.raw.left_x = (uint16_t)HAL_ADC_GetValue(&hadc1);
-    status = HAL_ADC_PollForConversion(&hadc1, 10U);
-  }
-  if (status == HAL_OK)
-  {
-    /* ADC1 rank 2 / PA1 is the physical left Y axis. */
-    debug.joystick.raw.left_y = (uint16_t)HAL_ADC_GetValue(&hadc1);
-    status = HAL_ADC_PollForConversion(&hadc1, 10U);
-  }
-  if (status == HAL_OK)
-  {
-    /* ADC1 rank 3 / PA2 is the physical right X axis. */
-    debug.joystick.raw.right_x = (uint16_t)HAL_ADC_GetValue(&hadc1);
+    return 1U;
   }
 
-  if (HAL_ADC_Stop(&hadc1) != HAL_OK && status == HAL_OK)
-  {
-    status = HAL_ERROR;
-  }
-
-  return status;
+  debug.joystick.raw.left_y = left_y;
+  debug.joystick.raw.left_x = left_x;
+  debug.joystick.raw.right_y = right_y;
+  debug.joystick.raw.right_x = right_x;
+  return 0U;
 }
 
-static HAL_StatusTypeDef Joystick_ReadAdc2(void)
+uint8_t Joystick_Init(void)
 {
-  HAL_StatusTypeDef status;
-
-  status = HAL_ADC_Start(&hadc2);
-  if (status != HAL_OK)
+  if (Board_JoystickCalibrate() == 0U)
   {
-    return status;
-  }
-
-  status = HAL_ADC_PollForConversion(&hadc2, 10U);
-  if (status == HAL_OK)
-  {
-    debug.joystick.raw.right_y = (uint16_t)HAL_ADC_GetValue(&hadc2);
-  }
-
-  if (HAL_ADC_Stop(&hadc2) != HAL_OK && status == HAL_OK)
-  {
-    status = HAL_ERROR;
-  }
-
-  return status;
-}
-
-HAL_StatusTypeDef Joystick_Init(void)
-{
-  HAL_StatusTypeDef status;
-
-  status = HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
-  if (status != HAL_OK)
-  {
-    return status;
-  }
-
-  status = HAL_ADCEx_Calibration_Start(&hadc2, ADC_SINGLE_ENDED);
-  if (status != HAL_OK)
-  {
-    return status;
+    return 1U;
   }
 
   Joystick_StartCalibration();
-  return HAL_OK;
+  return 0U;
 }
 
-HAL_StatusTypeDef Joystick_Update(void)
+uint8_t Joystick_Update(void)
 {
-  HAL_StatusTypeDef status = Joystick_ReadAdc1();
-
-  if (status != HAL_OK)
+  if (Joystick_ReadRaw() != 0U)
   {
-    return status;
-  }
-
-  status = Joystick_ReadAdc2();
-  if (status != HAL_OK)
-  {
-    return status;
+    return 1U;
   }
 
   Joystick_UpdateFilter();
@@ -309,5 +250,5 @@ HAL_StatusTypeDef Joystick_Update(void)
     Joystick_UpdateScaledValues();
   }
 
-  return HAL_OK;
+  return 0U;
 }

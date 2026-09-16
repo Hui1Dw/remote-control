@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "main.h"
+#include <stdint.h>
 
 /*
  * Two-position switch state. Each switch uses two active-low contacts:

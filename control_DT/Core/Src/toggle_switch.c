@@ -11,6 +11,7 @@
  * (about 30 ms) before it becomes the public debounced switch state.
  */
 #include "toggle_switch.h"
+#include "board.h"
 #include "debug.h"
 
 #define TOGGLE_SWITCH_DEBOUNCE_SAMPLES  3U
@@ -23,20 +24,17 @@ static ToggleSwitchState_t toggle_switch_candidate_state = {
 
 static uint8_t toggle_switch_candidate_count[4] = {0};
 
-static ToggleSwitchPosition_t ToggleSwitch_ReadPosition(GPIO_TypeDef *a_port,
-                                                         uint16_t a_pin,
-                                                         GPIO_TypeDef *b_port,
-                                                         uint16_t b_pin)
+static ToggleSwitchPosition_t ToggleSwitch_ReadPosition(uint8_t index)
 {
-  GPIO_PinState a_state = HAL_GPIO_ReadPin(a_port, a_pin);
-  GPIO_PinState b_state = HAL_GPIO_ReadPin(b_port, b_pin);
+  uint8_t a_low = Board_ToggleAIsLow(index);
+  uint8_t b_low = Board_ToggleBIsLow(index);
 
-  if (a_state == GPIO_PIN_RESET && b_state == GPIO_PIN_SET)
+  if (a_low != 0U && b_low == 0U)
   {
     return TOGGLE_SWITCH_POSITION_A;
   }
 
-  if (a_state == GPIO_PIN_SET && b_state == GPIO_PIN_RESET)
+  if (a_low == 0U && b_low != 0U)
   {
     return TOGGLE_SWITCH_POSITION_B;
   }
@@ -74,22 +72,10 @@ static void ToggleSwitch_Debounce(ToggleSwitchPosition_t raw_state,
 
 void ToggleSwitch_Update(void)
 {
-  debug.toggle_switch.raw.switch_1 = ToggleSwitch_ReadPosition(SWITCH_A_1_GPIO_Port,
-                                                                 SWITCH_A_1_Pin,
-                                                                 SWITCH_B_1_GPIO_Port,
-                                                                 SWITCH_B_1_Pin);
-  debug.toggle_switch.raw.switch_2 = ToggleSwitch_ReadPosition(SWITCH_A_2_GPIO_Port,
-                                                                 SWITCH_A_2_Pin,
-                                                                 SWITCH_B_2_GPIO_Port,
-                                                                 SWITCH_B_2_Pin);
-  debug.toggle_switch.raw.switch_3 = ToggleSwitch_ReadPosition(SWITCH_A_3_GPIO_Port,
-                                                                 SWITCH_A_3_Pin,
-                                                                 SWITCH_B_3_GPIO_Port,
-                                                                 SWITCH_B_3_Pin);
-  debug.toggle_switch.raw.switch_4 = ToggleSwitch_ReadPosition(SWITCH_A_4_GPIO_Port,
-                                                                 SWITCH_A_4_Pin,
-                                                                 SWITCH_B_4_GPIO_Port,
-                                                                 SWITCH_B_4_Pin);
+  debug.toggle_switch.raw.switch_1 = ToggleSwitch_ReadPosition(0U);
+  debug.toggle_switch.raw.switch_2 = ToggleSwitch_ReadPosition(1U);
+  debug.toggle_switch.raw.switch_3 = ToggleSwitch_ReadPosition(2U);
+  debug.toggle_switch.raw.switch_4 = ToggleSwitch_ReadPosition(3U);
 
   ToggleSwitch_Debounce(debug.toggle_switch.raw.switch_1,
                         &toggle_switch_candidate_state.switch_1,

@@ -1,5 +1,7 @@
 #include "board.h"
 
+#include "adc.h"
+#include "bsp_adc.hpp"
 #include "bsp_gpio.hpp"
 #include "bsp_time.hpp"
 #include "bsp_usart.hpp"
@@ -40,9 +42,54 @@ constexpr uint32_t radio_rx_af[BOARD_RADIO_COUNT] = {
 };
 BSP_n::USART_c *radio_uart[BOARD_RADIO_COUNT] = {&usart1, &usart2, &usart3};
 
+BSP_n::ADC_c joystick_adc1{&hadc1};
+BSP_n::ADC_c joystick_adc2{&hadc2};
+
+BSP_n::GPIO_c buttons[BOARD_BUTTON_COUNT] = {
+    BSP_n::GPIO_c(SW1_GPIO_Port, SW1_Pin),
+    BSP_n::GPIO_c(SW2_GPIO_Port, SW2_Pin),
+    BSP_n::GPIO_c(SW3_GPIO_Port, SW3_Pin),
+    BSP_n::GPIO_c(SW4_GPIO_Port, SW4_Pin),
+};
+BSP_n::GPIO_c toggle_a[BOARD_TOGGLE_COUNT] = {
+    BSP_n::GPIO_c(SWITCH_A_1_GPIO_Port, SWITCH_A_1_Pin),
+    BSP_n::GPIO_c(SWITCH_A_2_GPIO_Port, SWITCH_A_2_Pin),
+    BSP_n::GPIO_c(SWITCH_A_3_GPIO_Port, SWITCH_A_3_Pin),
+    BSP_n::GPIO_c(SWITCH_A_4_GPIO_Port, SWITCH_A_4_Pin),
+};
+BSP_n::GPIO_c toggle_b[BOARD_TOGGLE_COUNT] = {
+    BSP_n::GPIO_c(SWITCH_B_1_GPIO_Port, SWITCH_B_1_Pin),
+    BSP_n::GPIO_c(SWITCH_B_2_GPIO_Port, SWITCH_B_2_Pin),
+    BSP_n::GPIO_c(SWITCH_B_3_GPIO_Port, SWITCH_B_3_Pin),
+    BSP_n::GPIO_c(SWITCH_B_4_GPIO_Port, SWITCH_B_4_Pin),
+};
+
+constexpr uint32_t kAdcPollTimeoutMs = 10U;
+
 bool valid_index(uint8_t index)
 {
     return index < BOARD_RADIO_COUNT;
+}
+
+bool valid_button(uint8_t index)
+{
+    return index < BOARD_BUTTON_COUNT;
+}
+
+bool valid_toggle(uint8_t index)
+{
+    return index < BOARD_TOGGLE_COUNT;
+}
+
+bool read_adc_rank(BSP_n::ADC_c &adc, uint16_t *out)
+{
+    if (!adc.poll_for_conversion(kAdcPollTimeoutMs))
+    {
+        return false;
+    }
+
+    *out = adc.value();
+    return true;
 }
 } /* namespace */
 
@@ -245,4 +292,99 @@ extern "C" void Board_RadioStopRx(uint8_t index)
     }
 
     radio_uart[index]->stop_rx();
+}
+
+extern "C" uint8_t Board_JoystickCalibrate(void)
+{
+    if (!joystick_adc1.calibrate_single_ended())
+    {
+        return 0U;
+    }
+
+    return joystick_adc2.calibrate_single_ended() ? 1U : 0U;
+}
+
+extern "C" uint8_t Board_JoystickReadRaw(uint16_t *left_y, uint16_t *left_x,
+                                        uint16_t *right_y, uint16_t *right_x)
+{
+    uint16_t sample_left_y;
+    uint16_t sample_left_x;
+    uint16_t sample_right_y;
+    uint16_t sample_right_x;
+    bool ok;
+
+    if (left_y == nullptr || left_x == nullptr ||
+        right_y == nullptr || right_x == nullptr)
+    {
+        return 0U;
+    }
+
+    if (!joystick_adc1.start())
+    {
+        return 0U;
+    }
+
+    /* ADC1 rank 1 / PA0 = left X, rank 2 / PA1 = left Y, rank 3 / PA2 = right X. */
+    ok = read_adc_rank(joystick_adc1, &sample_left_x) &&
+         read_adc_rank(joystick_adc1, &sample_left_y) &&
+         read_adc_rank(joystick_adc1, &sample_right_x);
+    if (!joystick_adc1.stop())
+    {
+        ok = false;
+    }
+    if (!ok)
+    {
+        return 0U;
+    }
+
+    if (!joystick_adc2.start())
+    {
+        return 0U;
+    }
+
+    ok = read_adc_rank(joystick_adc2, &sample_right_y);
+    if (!joystick_adc2.stop())
+    {
+        ok = false;
+    }
+    if (!ok)
+    {
+        return 0U;
+    }
+
+    *left_y = sample_left_y;
+    *left_x = sample_left_x;
+    *right_y = sample_right_y;
+    *right_x = sample_right_x;
+    return 1U;
+}
+
+extern "C" uint8_t Board_ButtonIsPressed(uint8_t index)
+{
+    if (!valid_button(index))
+    {
+        return 0U;
+    }
+
+    return buttons[index].is_reset() ? 1U : 0U;
+}
+
+extern "C" uint8_t Board_ToggleAIsLow(uint8_t index)
+{
+    if (!valid_toggle(index))
+    {
+        return 0U;
+    }
+
+    return toggle_a[index].is_reset() ? 1U : 0U;
+}
+
+extern "C" uint8_t Board_ToggleBIsLow(uint8_t index)
+{
+    if (!valid_toggle(index))
+    {
+        return 0U;
+    }
+
+    return toggle_b[index].is_reset() ? 1U : 0U;
 }

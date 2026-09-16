@@ -9,6 +9,7 @@
  * becomes a persistent on/off command for the wireless control frame.
  */
 #include "button.h"
+#include "board.h"
 #include "debug.h"
 
 #define BUTTON_DEBOUNCE_SAMPLES  3U
@@ -27,9 +28,9 @@ static ButtonState_t button_previous_state = {
 
 static uint8_t button_candidate_count[4] = {0};
 
-static ButtonPosition_t Button_Read(GPIO_TypeDef *port, uint16_t pin)
+static ButtonPosition_t Button_Read(uint8_t index)
 {
-  return (HAL_GPIO_ReadPin(port, pin) == GPIO_PIN_RESET) ? BUTTON_PRESSED : BUTTON_RELEASED;
+  return (Board_ButtonIsPressed(index) != 0U) ? BUTTON_PRESSED : BUTTON_RELEASED;
 }
 
 static void Button_Debounce(ButtonPosition_t raw_state,
@@ -69,10 +70,10 @@ static void Button_ToggleOnPress(ButtonPosition_t stable_state,
 
 void Button_Update(void)
 {
-  debug.button.raw.sw1 = Button_Read(SW1_GPIO_Port, SW1_Pin);
-  debug.button.raw.sw2 = Button_Read(SW2_GPIO_Port, SW2_Pin);
-  debug.button.raw.sw3 = Button_Read(SW3_GPIO_Port, SW3_Pin);
-  debug.button.raw.sw4 = Button_Read(SW4_GPIO_Port, SW4_Pin);
+  debug.button.raw.sw1 = Button_Read(0U);
+  debug.button.raw.sw2 = Button_Read(1U);
+  debug.button.raw.sw3 = Button_Read(2U);
+  debug.button.raw.sw4 = Button_Read(3U);
 
   Button_Debounce(debug.button.raw.sw1,
                   &button_candidate_state.sw1,
