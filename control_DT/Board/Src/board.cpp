@@ -28,6 +28,16 @@ BSP_n::GPIO_c radio_aux[BOARD_RADIO_COUNT] = {
     BSP_n::GPIO_c(AUX_2_GPIO_Port, AUX_2_Pin),
     BSP_n::GPIO_c(AUX_3_GPIO_Port, AUX_3_Pin),
 };
+BSP_n::GPIO_c radio_rx[BOARD_RADIO_COUNT] = {
+    BSP_n::GPIO_c(GPIOA, GPIO_PIN_10),
+    BSP_n::GPIO_c(GPIOB, GPIO_PIN_3),
+    BSP_n::GPIO_c(GPIOB, GPIO_PIN_11),
+};
+constexpr uint32_t radio_rx_af[BOARD_RADIO_COUNT] = {
+    GPIO_AF7_USART1,
+    GPIO_AF7_USART2,
+    GPIO_AF7_USART3,
+};
 BSP_n::USART_c *radio_uart[BOARD_RADIO_COUNT] = {&usart1, &usart2, &usart3};
 
 bool valid_index(uint8_t index)
@@ -90,6 +100,81 @@ extern "C" uint8_t Board_RadioWaitAuxHigh(uint8_t index, uint32_t timeout_ms)
     return 0U;
 }
 
+extern "C" uint8_t Board_RadioAuxLevel(uint8_t index)
+{
+    if (!valid_index(index))
+    {
+        return 0U;
+    }
+
+    return radio_aux[index].is_set() ? 1U : 0U;
+}
+
+extern "C" uint8_t Board_RadioM0Level(uint8_t index)
+{
+    if (!valid_index(index))
+    {
+        return 0U;
+    }
+
+    return radio_m0[index].is_set() ? 1U : 0U;
+}
+
+extern "C" uint8_t Board_RadioM1Level(uint8_t index)
+{
+    if (!valid_index(index))
+    {
+        return 0U;
+    }
+
+    return radio_m1[index].is_set() ? 1U : 0U;
+}
+
+extern "C" uint8_t Board_RadioProbeAuxPullup(uint8_t index)
+{
+    uint8_t level;
+
+    if (!valid_index(index))
+    {
+        return 0U;
+    }
+
+    radio_aux[index].configure_input(BSP_n::GPIOPull_t::UP);
+    BSP_n::Time_c::delay_ms(kAuxSettleMs);
+    level = radio_aux[index].is_set() ? 1U : 0U;
+    radio_aux[index].configure_input(BSP_n::GPIOPull_t::NONE);
+    BSP_n::Time_c::delay_ms(kAuxSettleMs);
+    return level;
+}
+
+extern "C" uint8_t Board_RadioRxLevel(uint8_t index)
+{
+    if (!valid_index(index))
+    {
+        return 0U;
+    }
+
+    return radio_rx[index].is_set() ? 1U : 0U;
+}
+
+extern "C" uint8_t Board_RadioProbeRxPulldown(uint8_t index)
+{
+    uint8_t level;
+
+    if (!valid_index(index))
+    {
+        return 0U;
+    }
+
+    radio_uart[index]->stop_rx();
+    radio_rx[index].configure_input(BSP_n::GPIOPull_t::DOWN);
+    BSP_n::Time_c::delay_ms(kAuxSettleMs);
+    level = radio_rx[index].is_set() ? 1U : 0U;
+    radio_rx[index].configure_alternate(radio_rx_af[index]);
+    BSP_n::Time_c::delay_ms(kAuxSettleMs);
+    return level;
+}
+
 extern "C" void Board_RadioDrainUart(uint8_t index)
 {
     if (!valid_index(index))
@@ -120,6 +205,26 @@ extern "C" uint8_t Board_RadioReceiveBlock(uint8_t index, uint8_t *data, uint16_
     }
 
     return radio_uart[index]->receive_block(data, size, timeout_ms) ? 1U : 0U;
+}
+
+extern "C" uint16_t Board_RadioLastRxCount(uint8_t index)
+{
+    if (!valid_index(index))
+    {
+        return 0U;
+    }
+
+    return radio_uart[index]->last_rx_count();
+}
+
+extern "C" uint32_t Board_RadioLastUartError(uint8_t index)
+{
+    if (!valid_index(index))
+    {
+        return 0U;
+    }
+
+    return radio_uart[index]->last_uart_error();
 }
 
 extern "C" uint8_t Board_RadioSetBaud(uint8_t index, uint32_t baud)

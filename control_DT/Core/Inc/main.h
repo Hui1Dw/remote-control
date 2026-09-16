@@ -101,10 +101,10 @@ void Error_Handler(void);
 /* E22-400 / USART1：MCU TX=PA9 RX=PA10。配置模式 M0=0、M1=1。 */
 #define AUX_Pin GPIO_PIN_8
 #define AUX_GPIO_Port GPIOA
-#define M1_Pin GPIO_PIN_14
-#define M1_GPIO_Port GPIOB
-#define M0_Pin GPIO_PIN_15
+#define M0_Pin GPIO_PIN_14
 #define M0_GPIO_Port GPIOB
+#define M1_Pin GPIO_PIN_15
+#define M1_GPIO_Port GPIOB
 
 /* E22-900 / USART2：MCU TX=PB4 RX=PB3。 */
 #define AUX_2_Pin GPIO_PIN_5
@@ -115,11 +115,11 @@ void Error_Handler(void);
 #define M0_2_GPIO_Port GPIOB
 
 /* E22-230 / USART3：MCU TX=PB10 RX=PB11。 */
-#define AUX_3_Pin GPIO_PIN_0
+#define AUX_3_Pin GPIO_PIN_2
 #define AUX_3_GPIO_Port GPIOB
-#define M0_3_Pin GPIO_PIN_1
+#define M0_3_Pin GPIO_PIN_0
 #define M0_3_GPIO_Port GPIOB
-#define M1_3_Pin GPIO_PIN_2
+#define M1_3_Pin GPIO_PIN_1
 #define M1_3_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */

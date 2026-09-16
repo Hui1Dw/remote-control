@@ -43,6 +43,32 @@ void Board_RadioSetConfigMode(uint8_t index, uint8_t enable);
 /** 等到 AUX 高并再稳住 2 ms。1=成功，0=超时。 */
 uint8_t Board_RadioWaitAuxHigh(uint8_t index, uint32_t timeout_ms);
 
+/** 立即读取 AUX 电平，不等待。 */
+uint8_t Board_RadioAuxLevel(uint8_t index);
+
+/** 读取当前 M0/M1 管脚实际输入电平，用于检查输出脚是否被短路或钳位。 */
+uint8_t Board_RadioM0Level(uint8_t index);
+uint8_t Board_RadioM1Level(uint8_t index);
+
+/**
+ * @brief 用 MCU 内部弱上拉探测 AUX，再恢复 CubeMX 的无上下拉输入。
+ *
+ * 返回 1：线路能被弱上拉拉高，通常表示悬空/开路/模块未驱动。
+ * 返回 0：线路仍被外部主动拉低或对地短路。
+ */
+uint8_t Board_RadioProbeAuxPullup(uint8_t index);
+
+/** 直接读取 UART RX 管脚空闲电平。正常 UART 空闲通常为高。 */
+uint8_t Board_RadioRxLevel(uint8_t index);
+
+/**
+ * @brief 暂停接收并用内部弱下拉探测 RX，随后恢复 USART AF。
+ *
+ * 返回值只表示探测瞬间线路能否抵抗弱下拉。部分 E22 在工作模式会让 TXD
+ * 呈高阻，因此该值只能与其他通道对照，不能单独判定线路通断。
+ */
+uint8_t Board_RadioProbeRxPulldown(uint8_t index);
+
 void Board_RadioDrainUart(uint8_t index);
 
 /** 阻塞发送。1=成功，0=失败。 */
@@ -52,6 +78,12 @@ uint8_t Board_RadioTransmitBlock(uint8_t index, const uint8_t *data, uint16_t si
 /** 阻塞接收固定长度。1=成功，0=失败。 */
 uint8_t Board_RadioReceiveBlock(uint8_t index, uint8_t *data, uint16_t size,
                                 uint32_t timeout_ms);
+
+/** 最近一次阻塞接收实际收到的字节数。 */
+uint16_t Board_RadioLastRxCount(uint8_t index);
+
+/** 最近一次阻塞接收结束时的 HAL UART ErrorCode。 */
+uint32_t Board_RadioLastUartError(uint8_t index);
 
 /**
  * @brief 改该路 MCU UART 工作波特率。

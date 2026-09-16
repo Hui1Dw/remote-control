@@ -13,6 +13,7 @@
 #define E22_REGISTER_START                0x00U
 #define E22_REGISTER_COUNT                0x09U
 #define E22_COMMAND_SIZE                  12U
+#define E22_READ_COMMAND_SIZE             3U
 
 #define E22_ADDH                          0x00U
 #define E22_ADDL                          0x00U
@@ -28,6 +29,7 @@
 #define E22_UART_115200_8N1               0xE0U /* 111 00 xxx */
 
 #define E22_AT_TIMEOUT_MS                 100U
+#define E22_C1_FALLBACK_TIMEOUT_MS        1000U
 #define E22_AUX_TIMEOUT_MS                500U
 #define E22_POWER_UP_SETTLE_MS            1000U
 #define E22_BOOT_AUX_TIMEOUT_MS           2000U
@@ -42,6 +44,54 @@
 #define E22_ERR_RX                        3U
 #define E22_ERR_MISMATCH                  4U
 #define E22_ERR_BAUD                      5U
+
+#define E22_STEP_NONE                     0U
+#define E22_STEP_PRE_WRITE_AUX            1U
+#define E22_STEP_TX                       2U
+#define E22_STEP_RX                       3U
+#define E22_STEP_MISMATCH                 4U
+#define E22_STEP_POST_WRITE_AUX           5U
+#define E22_STEP_CONFIG_AUX               6U
+#define E22_STEP_WORK_MODE_AUX            7U
+#define E22_STEP_SET_BAUD                 8U
+#define E22_STEP_C1_TX                    9U
+#define E22_STEP_C1_RX                    10U
+#define E22_STEP_C1_MISMATCH              11U
+
+static void E22_ResetAttemptDiagnostics(uint8_t index)
+{
+  uint8_t byte_index;
+
+  debug.e22.last_error[index] = E22_ERR_NONE;
+  debug.e22.readback_ok[index] = 0U;
+  debug.e22.readback_reg0[index] = 0U;
+  debug.e22.readback_reg1[index] = 0U;
+  debug.e22.readback_reg3[index] = 0U;
+  debug.e22.readback_channel[index] = 0U;
+  debug.e22.fail_step[index] = E22_STEP_NONE;
+  debug.e22.rx_count[index] = 0U;
+  debug.e22.uart_error[index] = 0U;
+  debug.e22.readback_source[index] = 0U;
+  debug.e22.c0_rx_count[index] = 0U;
+  for (byte_index = 0U; byte_index < E22_COMMAND_SIZE; byte_index++)
+  {
+    debug.e22.reply[index][byte_index] = 0U;
+  }
+}
+
+static void E22_StoreReplyDiagnostics(uint8_t index, const uint8_t *reply)
+{
+  uint8_t byte_index;
+  uint16_t rx_count = Board_RadioLastRxCount(index);
+
+  debug.e22.rx_count[index] = (rx_count <= E22_COMMAND_SIZE) ? (uint8_t)rx_count
+                                                             : E22_COMMAND_SIZE;
+  debug.e22.uart_error[index] = Board_RadioLastUartError(index);
+  for (byte_index = 0U; byte_index < E22_COMMAND_SIZE; byte_index++)
+  {
+    debug.e22.reply[index][byte_index] = reply[byte_index];
+  }
+}
 
 static void E22_StoreReadback(uint8_t index, const uint8_t *reply, uint8_t rx_ok)
 {
@@ -101,10 +151,16 @@ static uint8_t E22_WriteRegisters(uint8_t index)
       E22_CRYPT_H,
       E22_CRYPT_L};
   uint8_t reply[E22_COMMAND_SIZE] = {0U};
+  uint8_t read_command[E22_READ_COMMAND_SIZE] = {
+      E22_READ_COMMAND,
+      E22_REGISTER_START,
+      E22_REGISTER_COUNT};
+  uint8_t c0_reply_ok = 0U;
 
   if (Board_RadioWaitAuxHigh(index, E22_AUX_TIMEOUT_MS) == 0U)
   {
     debug.e22.last_error[index] = E22_ERR_AUX;
+    debug.e22.fail_step[index] = E22_STEP_PRE_WRITE_AUX;
     return 0U;
   }
 
@@ -113,39 +169,101 @@ static uint8_t E22_WriteRegisters(uint8_t index)
                                E22_AT_TIMEOUT_MS) == 0U)
   {
     debug.e22.last_error[index] = E22_ERR_TX;
+    debug.e22.fail_step[index] = E22_STEP_TX;
     return 0U;
   }
 
   if (Board_RadioReceiveBlock(index, reply, (uint16_t)sizeof(reply),
-                              E22_AT_TIMEOUT_MS) == 0U)
+                              E22_AT_TIMEOUT_MS) != 0U)
   {
-    debug.e22.last_error[index] = E22_ERR_RX;
+    E22_StoreReplyDiagnostics(index, reply);
+    debug.e22.c0_rx_count[index] = debug.e22.rx_count[index];
+    E22_StoreReadback(index, reply, E22_HeaderOk(reply));
+    if (E22_PayloadAcceptable(reply) != 0U)
+    {
+      debug.e22.readback_source[index] = 1U;
+      c0_reply_ok = 1U;
+    }
+  }
+  else
+  {
+    E22_StoreReplyDiagnostics(index, reply);
+    debug.e22.c0_rx_count[index] = debug.e22.rx_count[index];
     E22_StoreReadback(index, reply, 0U);
-    return 0U;
   }
 
-  E22_StoreReadback(index, reply, E22_HeaderOk(reply));
-  if (E22_PayloadAcceptable(reply) == 0U)
+  if (Board_RadioWaitAuxHigh(index, E22_AUX_TIMEOUT_MS) == 0U)
   {
-    debug.e22.last_error[index] = E22_ERR_MISMATCH;
+    debug.e22.last_error[index] = E22_ERR_AUX;
+    debug.e22.fail_step[index] = E22_STEP_POST_WRITE_AUX;
     return 0U;
   }
 
-  return Board_RadioWaitAuxHigh(index, E22_AUX_TIMEOUT_MS);
+  if (c0_reply_ok == 0U)
+  {
+    uint8_t byte_index;
+
+    /* 某些通道未返回/错过 C0 应答时，主动发 C1 做一次独立回读。 */
+    for (byte_index = 0U; byte_index < E22_COMMAND_SIZE; byte_index++)
+    {
+      reply[byte_index] = 0U;
+    }
+    Board_RadioDrainUart(index);
+    if (Board_RadioTransmitBlock(index, read_command, (uint16_t)sizeof(read_command),
+                                 E22_AT_TIMEOUT_MS) == 0U)
+    {
+      debug.e22.last_error[index] = E22_ERR_TX;
+      debug.e22.fail_step[index] = E22_STEP_C1_TX;
+      return 0U;
+    }
+
+    if (Board_RadioReceiveBlock(index, reply, (uint16_t)sizeof(reply),
+                                E22_C1_FALLBACK_TIMEOUT_MS) == 0U)
+    {
+      E22_StoreReplyDiagnostics(index, reply);
+      E22_StoreReadback(index, reply, 0U);
+      debug.e22.last_error[index] = E22_ERR_RX;
+      debug.e22.fail_step[index] = E22_STEP_C1_RX;
+      return 0U;
+    }
+
+    E22_StoreReplyDiagnostics(index, reply);
+    E22_StoreReadback(index, reply, E22_HeaderOk(reply));
+    if (E22_PayloadAcceptable(reply) == 0U)
+    {
+      debug.e22.last_error[index] = E22_ERR_MISMATCH;
+      debug.e22.fail_step[index] = E22_STEP_C1_MISMATCH;
+      return 0U;
+    }
+    debug.e22.readback_source[index] = 2U;
+
+    if (Board_RadioWaitAuxHigh(index, E22_AUX_TIMEOUT_MS) == 0U)
+    {
+      debug.e22.last_error[index] = E22_ERR_AUX;
+      debug.e22.fail_step[index] = E22_STEP_POST_WRITE_AUX;
+      return 0U;
+    }
+  }
+
+  return 1U;
 }
 
 static uint8_t E22_ConfigureOne(uint8_t index)
 {
   uint8_t ok;
 
+  E22_ResetAttemptDiagnostics(index);
   Board_RadioStopRx(index);
   Board_RadioSetConfigMode(index, 1U);
   Bsp_DelayMs(E22_MODE_SETTLE_MS);
+  debug.e22.config_m0_level[index] = Board_RadioM0Level(index);
+  debug.e22.config_m1_level[index] = Board_RadioM1Level(index);
 
   ok = E22_WriteRegisters(index);
   if ((ok != 0U) && (Board_RadioWaitAuxHigh(index, E22_AUX_TIMEOUT_MS) == 0U))
   {
     debug.e22.last_error[index] = E22_ERR_AUX;
+    debug.e22.fail_step[index] = E22_STEP_CONFIG_AUX;
     ok = 0U;
   }
 
@@ -153,9 +271,15 @@ static uint8_t E22_ConfigureOne(uint8_t index)
   Bsp_DelayMs(E22_MODE_SETTLE_MS);
   if (Board_RadioWaitAuxHigh(index, E22_AUX_TIMEOUT_MS) == 0U)
   {
-    debug.e22.last_error[index] = E22_ERR_AUX;
+    if (ok != 0U)
+    {
+      debug.e22.last_error[index] = E22_ERR_AUX;
+      debug.e22.fail_step[index] = E22_STEP_WORK_MODE_AUX;
+    }
     ok = 0U;
   }
+
+  debug.e22.aux_level[index] = Board_RadioAuxLevel(index);
 
   if (ok != 0U)
   {
@@ -163,11 +287,13 @@ static uint8_t E22_ConfigureOne(uint8_t index)
     if (Board_RadioSetBaud(index, E22_WORK_BAUD) == 0U)
     {
       debug.e22.last_error[index] = E22_ERR_BAUD;
+      debug.e22.fail_step[index] = E22_STEP_SET_BAUD;
       debug.e22.mcu_baud[index] = 9600U;
       return 0U;
     }
     debug.e22.mcu_baud[index] = E22_WORK_BAUD;
     debug.e22.last_error[index] = E22_ERR_NONE;
+    debug.e22.fail_step[index] = E22_STEP_NONE;
     return 1U;
   }
 
@@ -190,6 +316,19 @@ uint8_t E22Provisioning_Run(void)
     debug.e22.readback_channel[index] = 0U;
     debug.e22.attempt_count[index] = 0U;
     debug.e22.last_error[index] = E22_ERR_NONE;
+    debug.e22.boot_aux_ok[index] = 0U;
+    debug.e22.aux_level[index] = 0U;
+    debug.e22.fail_step[index] = E22_STEP_NONE;
+    debug.e22.rx_count[index] = 0U;
+    debug.e22.uart_error[index] = 0U;
+    debug.e22.readback_source[index] = 0U;
+    debug.e22.c0_rx_count[index] = 0U;
+    debug.e22.config_m0_level[index] = 0U;
+    debug.e22.config_m1_level[index] = 0U;
+    debug.e22.aux_pullup_level[index] = 0U;
+    debug.e22.rx_idle_level[index] = 0U;
+    debug.e22.rx_pulldown_level[index] = 0U;
+    E22_ResetAttemptDiagnostics(index);
     debug.e22.mcu_baud[index] = 9600U;
     Board_RadioSetConfigMode(index, 0U);
   }
@@ -199,7 +338,8 @@ uint8_t E22Provisioning_Run(void)
 
   for (index = 0U; index < BOARD_RADIO_COUNT; index++)
   {
-    (void)Board_RadioWaitAuxHigh(index, E22_BOOT_AUX_TIMEOUT_MS);
+    debug.e22.boot_aux_ok[index] = Board_RadioWaitAuxHigh(index, E22_BOOT_AUX_TIMEOUT_MS);
+    debug.e22.aux_level[index] = Board_RadioAuxLevel(index);
   }
 
   for (index = 0U; index < BOARD_RADIO_COUNT; index++)
@@ -226,6 +366,14 @@ uint8_t E22Provisioning_Run(void)
     {
       all_ok = 0U;
     }
+  }
+
+  /* 无示波器时用内部弱上下拉做静态线路探测；随后均恢复原 GPIO/USART 配置。 */
+  for (index = 0U; index < BOARD_RADIO_COUNT; index++)
+  {
+    debug.e22.aux_pullup_level[index] = Board_RadioProbeAuxPullup(index);
+    debug.e22.rx_idle_level[index] = Board_RadioRxLevel(index);
+    debug.e22.rx_pulldown_level[index] = Board_RadioProbeRxPulldown(index);
   }
 
   debug.e22.all_ok = all_ok;

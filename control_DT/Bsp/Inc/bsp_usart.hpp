@@ -52,6 +52,12 @@ public:
     /** 阻塞接收固定长度，供读 C1 回读。 */
     bool receive_block(uint8_t *data, uint16_t size, uint32_t timeout_ms);
 
+    /** 最近一次阻塞接收实际收到的字节数（超时时也保留部分长度）。 */
+    uint16_t last_rx_count() const;
+
+    /** 最近一次阻塞接收结束时的 HAL UART ErrorCode，仅供 Board 诊断。 */
+    uint32_t last_uart_error() const;
+
     /** 丢掉 RX 残留字节并清除错误标志，避免混进 C1。 */
     void drain_rx();
 
@@ -82,6 +88,8 @@ private:
     UART_HandleTypeDef *handle_;
     TxType_t tx_type_;
     volatile bool busy_;
+    uint16_t last_rx_count_;
+    uint32_t last_uart_error_;
 };
 
 } /* namespace BSP_n */

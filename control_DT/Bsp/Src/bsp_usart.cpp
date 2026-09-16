@@ -31,7 +31,7 @@ USART_c *USART_c::FindInstanceByHandle(UART_HandleTypeDef *huart)
 }
 
 USART_c::USART_c(UART_HandleTypeDef *handle, TxType_t tx_type)
-    : handle_(handle), tx_type_(tx_type), busy_(false)
+    : handle_(handle), tx_type_(tx_type), busy_(false), last_rx_count_(0U), last_uart_error_(0U)
 {
     RegisterInstance(this);
 }
@@ -94,12 +94,32 @@ bool USART_c::transmit_block(const uint8_t *data, uint16_t size, uint32_t timeou
 
 bool USART_c::receive_block(uint8_t *data, uint16_t size, uint32_t timeout_ms)
 {
+    HAL_StatusTypeDef status;
+
+    last_rx_count_ = 0U;
+    last_uart_error_ = 0U;
     if ((handle_ == nullptr) || (data == nullptr) || (size == 0U))
     {
         return false;
     }
 
-    return HAL_UART_Receive(handle_, data, size, timeout_ms) == HAL_OK;
+    status = HAL_UART_Receive(handle_, data, size, timeout_ms);
+    if (((status == HAL_OK) || (status == HAL_TIMEOUT)) && (handle_->RxXferCount <= size))
+    {
+        last_rx_count_ = (uint16_t)(size - handle_->RxXferCount);
+    }
+    last_uart_error_ = handle_->ErrorCode;
+    return status == HAL_OK;
+}
+
+uint16_t USART_c::last_rx_count() const
+{
+    return last_rx_count_;
+}
+
+uint32_t USART_c::last_uart_error() const
+{
+    return last_uart_error_;
 }
 
 void USART_c::drain_rx()

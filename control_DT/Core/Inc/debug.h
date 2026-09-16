@@ -58,6 +58,19 @@ typedef struct
     uint8_t readback_channel[3];     /* 回读 CHAN，目标 23 */
     uint8_t attempt_count[3];        /* 各路配置尝试次数 */
     uint8_t last_error[3];           /* 0无 1AUX超时 2TX失败 3RX失败 4回读不符 5改波特失败 */
+    uint8_t boot_aux_ok[3];          /* 上电等待阶段是否看到 AUX 高 */
+    uint8_t aux_level[3];            /* 最近一次尝试结束时的 AUX 电平 */
+    uint8_t fail_step[3];            /* 0无 1写前AUX 2TX 3RX 4内容 5写后AUX 6配置态AUX 7退配置AUX 8改波特 9~11主动C1 */
+    uint8_t rx_count[3];             /* 最近一次 C1 接收实际收到的字节数，目标 12 */
+    uint8_t reply[3][12];            /* 最近一次 C1 原始回包；未收到部分保持 0 */
+    uint32_t uart_error[3];          /* 最近一次接收结束时的 HAL UART ErrorCode */
+    uint8_t readback_source[3];      /* 0无有效回读，1=C0直接应答，2=主动发送C1所得回读 */
+    uint8_t c0_rx_count[3];          /* C0 后第一次接收的字节数；随后主动 C1 可能覆盖 rx_count/reply */
+    uint8_t config_m0_level[3];      /* 配置模式稳定后 M0 实际读值，目标 0 */
+    uint8_t config_m1_level[3];      /* 配置模式稳定后 M1 实际读值，目标 1 */
+    uint8_t aux_pullup_level[3];     /* AUX 加内部弱上拉后的读值：1偏向悬空，0偏向外部强拉低 */
+    uint8_t rx_idle_level[3];        /* USART RX 正常复用状态下的空闲电平，通常应为 1 */
+    uint8_t rx_pulldown_level[3];    /* RX 加内部弱下拉后的读值；只表示当时驱动强弱，不能单独判定通断 */
   } e22;                             /* 上电一次性 E22 寄存器配置诊断 */
 } Debug_t;
 

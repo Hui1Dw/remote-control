@@ -106,12 +106,12 @@ int main(void)
   }
 
   /*
-   * 三个 E34 无线模块的 M0/M1 均在 gpio.c 初始化为输出低电平，
+   * 三个 E22 无线模块的 M0/M1 均在 gpio.c 初始化为输出低电平，
    * 即普通通信模式。AUX 为输入，监测模块状态。
    *
-   *   串口1 (USART1)：M0=PB15 M1=PB14 AUX=PA8
+   *   串口1 (USART1)：M0=PB14 M1=PB15 AUX=PA8
    *   串口2 (USART2)：M0=PB7  M1=PB6  AUX=PB5
-   *   串口3 (USART3)：M0=PB1  M1=PB2  AUX=PB0
+   *   串口3 (USART3)：M0=PB0  M1=PB1  AUX=PB2
    *
    */
   /* USER CODE END 2 */

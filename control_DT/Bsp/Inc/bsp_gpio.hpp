@@ -10,6 +10,13 @@ extern "C" {
 namespace BSP_n
 {
 
+enum class GPIOPull_t : uint8_t
+{
+    NONE,
+    UP,
+    DOWN,
+};
+
 /**
  * @brief 单个 GPIO 引脚包装。
  *
@@ -25,6 +32,12 @@ public:
     void set();
     void reset();
     void write(bool high);
+
+    /** 临时重配为输入，用于无仪器线路探测。 */
+    void configure_input(GPIOPull_t pull);
+
+    /** 恢复为推挽复用功能。 */
+    void configure_alternate(uint32_t alternate);
 
 private:
     GPIO_TypeDef *port_;

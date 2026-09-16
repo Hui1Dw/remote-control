@@ -51,16 +51,16 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, M1_Pin|M0_Pin|M0_2_Pin|M1_2_Pin|M0_3_Pin|M1_3_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, M0_Pin|M1_Pin|M0_2_Pin|M1_2_Pin|M0_3_Pin|M1_3_Pin, GPIO_PIN_RESET);
 
-  /* USART1 E34 模块：M0=PB15, M1=PB14 (刷为输出低 = 普通通信模式) */
-  GPIO_InitStruct.Pin = M1_Pin|M0_Pin;
+  /* USART1 E22 模块：M0=PB14, M1=PB15 (输出低 = 普通通信模式) */
+  GPIO_InitStruct.Pin = M0_Pin|M1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /* USART1 E34 模块：AUX=PA8 (输入，监测模块状态) */
+  /* USART1 E22 模块：AUX=PA8 (输入，监测模块状态) */
   GPIO_InitStruct.Pin = AUX_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -83,27 +83,27 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pin = SWITCH_A_3_Pin | SWITCH_B_3_Pin;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /* USART2 E34 模块：M0=PB7, M1=PB6 (输出低 = 普通通信模式) */
+  /* USART2 E22 模块：M0=PB7, M1=PB6 (输出低 = 普通通信模式) */
   GPIO_InitStruct.Pin = M0_2_Pin|M1_2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /* USART2 E34 模块：AUX=PB5 (输入) */
+  /* USART2 E22 模块：AUX=PB5 (输入) */
   GPIO_InitStruct.Pin = AUX_2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(AUX_2_GPIO_Port, &GPIO_InitStruct);
 
-  /* USART3 E34 模块：M0=PB1, M1=PB2 (输出低 = 普通通信模式) */
+  /* USART3 E22 模块：M0=PB0, M1=PB1 (输出低 = 普通通信模式) */
   GPIO_InitStruct.Pin = M0_3_Pin|M1_3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /* USART3 E34 模块：AUX=PB0 (输入) */
+  /* USART3 E22 模块：AUX=PB2 (输入) */
   GPIO_InitStruct.Pin = AUX_3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
