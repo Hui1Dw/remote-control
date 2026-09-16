@@ -87,6 +87,16 @@ typedef struct
         uint8_t attempt_count[3];        /* 各路配置尝试次数 */
         uint8_t last_error[3];           /* 0无 1AUX超时 2TX失败 3RX失败 4回读不符 5改波特失败 */
     } e22;                             /* 上电一次性 E22 寄存器配置诊断 */
+    struct
+    {
+        uint8_t init_ok;                 /* 1=HSI48/CRS/PCD/CDC 启动成功 */
+        uint8_t init_error;              /* 0无 1时钟 2USBD_Init 3RegisterClass 4RegisterInterface 5Start */
+        uint8_t configured;              /* 1=主机已枚举配置 */
+        uint32_t rx_count;               /* 已从主机收到的字节累计 */
+        uint32_t tx_ok;                  /* 非阻塞提交成功次数 */
+        uint32_t tx_busy_drop;           /* 未配置或 TX 忙而丢弃的次数 */
+        uint32_t cmd_count;              /* 回显提交次数；本阶段无命令协议 */
+    } usb;                             /* USB CDC 维护通道诊断，不替代 Watch */
 } Debug_t;
 
 extern volatile Debug_t debug; /* 接收端公开调试状态，Watch 此变量 */

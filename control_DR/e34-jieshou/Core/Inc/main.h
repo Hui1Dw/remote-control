@@ -84,6 +84,12 @@ void Error_Handler(void);
 #define M0_3_Pin GPIO_PIN_0
 #define M0_3_GPIO_Port GPIOB
 
+/* USB FS Device CDC：PA11=USB_DM，PA12=USB_DP。硬件已预留，固件启用 HSI48+CRS 后由 PCD 接管。 */
+#define USB_DM_Pin GPIO_PIN_11
+#define USB_DM_GPIO_Port GPIOA
+#define USB_DP_Pin GPIO_PIN_12
+#define USB_DP_GPIO_Port GPIOA
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

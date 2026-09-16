@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include "board.h"
 #include "app.h"
+#include "usb_device.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -105,6 +106,8 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
+  /* USB init failure must not stop E22 RX or the 300 ms failsafe. */
+  MX_USB_DEVICE_Init();
   Board_Init();
   if (!App_Init())
   {

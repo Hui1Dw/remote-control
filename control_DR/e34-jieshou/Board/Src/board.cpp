@@ -1,5 +1,6 @@
 #include "board.h"
 
+#include "bsp.h"
 #include "bsp_gpio.hpp"
 #include "bsp_time.hpp"
 #include "bsp_usart.hpp"
@@ -269,4 +270,34 @@ extern "C" void Board_RadioStopRx(uint8_t index)
     }
 
     radio_uart[index]->stop_rx();
+}
+
+extern "C" uint32_t Board_NowMs(void)
+{
+    return Bsp_NowMs();
+}
+
+extern "C" uint8_t Board_UsbWrite(const uint8_t *data, uint16_t len)
+{
+    return Bsp_UsbWrite(data, len);
+}
+
+extern "C" uint16_t Board_UsbRead(uint8_t *data, uint16_t max_len)
+{
+    return Bsp_UsbRead(data, max_len);
+}
+
+extern "C" uint8_t Board_UsbConfigured(void)
+{
+    return Bsp_UsbConfigured();
+}
+
+extern "C" void Board_UsbUpdateDebug(void)
+{
+    debug.usb.configured = Bsp_UsbConfigured();
+}
+
+extern "C" void Board_SystemReset(void)
+{
+    NVIC_SystemReset();
 }

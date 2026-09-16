@@ -18,7 +18,7 @@ extern "C" {
 uint8_t App_Init(void);
 
 /**
- * @brief 主循环一轮：刷新 DMA 现场值 / AUX，并做优先级与失联保护。
+ * @brief 主循环一轮：刷新 DMA 现场值 / AUX，做优先级与失联保护，再轮询 USB CDC 回显。
  */
 void App_Loop(void);
 

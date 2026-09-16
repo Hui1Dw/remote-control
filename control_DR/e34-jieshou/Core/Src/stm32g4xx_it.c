@@ -61,6 +61,7 @@
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart3;
+extern PCD_HandleTypeDef hpcd_USB_FS;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -254,5 +255,10 @@ void DMA1_Channel6_IRQHandler(void)
 void DMA2_Channel3_IRQHandler(void)
 {
   HAL_DMA_IRQHandler(&hdma_usart3_rx);
+}
+
+void USB_LP_IRQHandler(void)
+{
+  HAL_PCD_IRQHandler(&hpcd_USB_FS);
 }
 /* USER CODE END 1 */

@@ -64,6 +64,22 @@ uint8_t Board_RadioSetBaud(uint8_t index, uint32_t baud);
 /** 配置前停 DMA RX，避免和阻塞收发抢数据。 */
 void Board_RadioStopRx(uint8_t index);
 
+uint32_t Board_NowMs(void);
+
+/** Non-blocking USB CDC write. 1=accepted, 0=not configured / TX busy / dropped. */
+uint8_t Board_UsbWrite(const uint8_t *data, uint16_t len);
+
+/** Non-blocking USB CDC read into caller buffer. Returns bytes copied. */
+uint16_t Board_UsbRead(uint8_t *data, uint16_t max_len);
+
+uint8_t Board_UsbConfigured(void);
+
+/** Refresh debug.usb.configured from the USB stack. */
+void Board_UsbUpdateDebug(void);
+
+void Board_SystemReset(void);
+
+
 #ifdef __cplusplus
 }
 #endif

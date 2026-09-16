@@ -90,9 +90,15 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${PROJECT_SOURCE_DIR}/Bsp/Src/bsp_time.cpp
     ${PROJECT_SOURCE_DIR}/Bsp/Src/bsp_gpio.cpp
     ${PROJECT_SOURCE_DIR}/Bsp/Src/bsp_usart.cpp
+    ${PROJECT_SOURCE_DIR}/Bsp/Src/bsp_usb.c
     ${PROJECT_SOURCE_DIR}/Board/Src/board.cpp
     ${PROJECT_SOURCE_DIR}/App/Src/app.c
     ${PROJECT_SOURCE_DIR}/App/Src/e22_provisioning.c
+    ${PROJECT_SOURCE_DIR}/App/Src/maintenance.c
+    ${PROJECT_SOURCE_DIR}/USB_DEVICE/App/usb_device.c
+    ${PROJECT_SOURCE_DIR}/USB_DEVICE/App/usbd_desc.c
+    ${PROJECT_SOURCE_DIR}/USB_DEVICE/App/usbd_cdc_if.c
+    ${PROJECT_SOURCE_DIR}/USB_DEVICE/Target/usbd_conf.c
     # uart_rx.c / e34_rx.c / uart2_rx.c / uart3_rx.c / rx_dispatcher.c
     # 保留作调试旁路，不再编译，避免与 USART_c 抢 HAL 回调。
 )
@@ -101,6 +107,10 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${PROJECT_SOURCE_DIR}/Bsp/Inc
     ${PROJECT_SOURCE_DIR}/Board/Inc
     ${PROJECT_SOURCE_DIR}/App/Inc
+    ${PROJECT_SOURCE_DIR}/USB_DEVICE/App
+    ${PROJECT_SOURCE_DIR}/USB_DEVICE/Target
+    ${PROJECT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Core/Inc
+    ${PROJECT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
 )
 
 # Link directories setup

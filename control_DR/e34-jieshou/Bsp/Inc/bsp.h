@@ -12,6 +12,10 @@ extern "C" {
 uint32_t Bsp_NowMs(void);
 void Bsp_DelayMs(uint32_t ms);
 
+uint8_t Bsp_UsbWrite(const uint8_t *data, uint16_t len);
+uint16_t Bsp_UsbRead(uint8_t *data, uint16_t max_len);
+uint8_t Bsp_UsbConfigured(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -2,6 +2,7 @@
 
 #include "board.h"
 #include "e22_provisioning.h"
+#include "maintenance.h"
 #include "receiver_control.h"
 
 uint8_t App_Init(void)
@@ -21,4 +22,5 @@ void App_Loop(void)
 {
   Board_UartUpdateDebug();
   ReceiverControl_Poll();
+  Maintenance_Poll();
 }
