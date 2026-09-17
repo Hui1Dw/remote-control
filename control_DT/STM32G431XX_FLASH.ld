@@ -56,7 +56,8 @@ ENTRY(Reset_Handler)
 MEMORY
 {
 RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 32K
-FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 128K
+/* Last 4 KiB (0x0801F000-0x0801FFFF, pages 62-63) reserved for pairing journal. */
+FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 124K
 }
 
 /* Highest address of the user mode stack */

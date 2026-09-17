@@ -8,6 +8,8 @@ extern "C" {
 #include <stdint.h>
 
 #define WIRELESS_CONTROL_FRAME_SIZE  14U
+#define WIRELESS_E22_FIXED_HEADER_SIZE 3U
+#define WIRELESS_E22_TARGET_CHANNEL    23U
 #define WIRELESS_CONTROL_TX_PERIOD_DEFAULT_MS 20U
 #define WIRELESS_CONTROL_TX_PERIOD_FAST_MS    10U
 
@@ -23,6 +25,7 @@ typedef struct
   uint32_t tx_success_count;   /* UART 提交成功次数；USART1 配置成功后约每 10 ms +1 */
   uint32_t tx_error_count;     /* UART 提交失败次数 */
   uint32_t tx_busy_skip_count; /* AUX 为低或 USART1 仍在发送而跳过本周期的次数 */
+  uint32_t tx_quiet_skip_count; /* 配对号输入期间主动暂停发送而跳过的次数 */
   uint8_t last_tx_status;      /* 最近一次提交结果，0=成功 */
   uint32_t tx_period_ms;       /* 当前发送周期。USART1 配置成功为 10，否则 20 */
 } WirelessControlDiagnostics_t;
@@ -36,9 +39,25 @@ typedef struct
 void WirelessControl_Init(void);
 
 /**
+ * @brief 设置定点发送的目标接收机地址。
+ *
+ * E22 REG3=0x43 时，UART 前 3 字节必须是目标 ADDH/ADDL/CHAN。
+ * 出厂目标为 0x0207。
+ */
+void WirelessControl_SetDestination(uint16_t address);
+
+/**
  * @brief 设置控制帧发送周期。USART1 E22 配置成功后用 10 ms，失败保持 20 ms。
  */
 void WirelessControl_SetTxPeriodMs(uint32_t period_ms);
+
+/**
+ * @brief 允许或暂停 14 字节控制帧发送。
+ *
+ * 配对号输入期间必须暂停，使接收机按既有 300 ms 失联进入安全态。
+ * enabled=0 时跳过当前周期，不排队、不覆盖。
+ */
+void WirelessControl_SetTxEnabled(uint8_t enabled);
 
 /**
  * @brief Send one latest-input control frame when E22-1 is ready.

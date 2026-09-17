@@ -8,6 +8,8 @@ extern "C" {
 #include <stdint.h>
 
 #define BOARD_RADIO_COUNT 3U
+#define BOARD_PAIRING_SLOT_COUNT 2U
+#define BOARD_PAIRING_SLOT_SIZE  0x800U
 
 /**
  * @brief 绑定本板 E22 / GPIO / UART。
@@ -95,6 +97,18 @@ uint8_t Board_RadioSetBaud(uint8_t index, uint32_t baud);
 /** 发端无 DMA RX；Abort 后保证配置收发前 UART READY。 */
 void Board_RadioStopRx(uint8_t index);
 
+typedef void (*Board_RadioRxCallback)(const uint8_t *data, uint16_t size);
+
+/**
+ * @brief 启动该路 Idle-IT 接收。
+ *
+ * 当前配对只使用通道 0 / USART1。1=已启动。
+ */
+uint8_t Board_RadioStartIdleRx(uint8_t index, Board_RadioRxCallback callback);
+
+/** 只停 Idle-IT RX，不打断 IT 发送。 */
+void Board_RadioStopIdleRx(uint8_t index);
+
 #define BOARD_BUTTON_COUNT 4U
 #define BOARD_TOGGLE_COUNT 4U
 
@@ -129,6 +143,17 @@ uint8_t Board_ButtonIsPressed(uint8_t index);
  */
 uint8_t Board_ToggleAIsLow(uint8_t index);
 uint8_t Board_ToggleBIsLow(uint8_t index);
+
+uint32_t Board_NowMs(void);
+
+/** Map pairing-journal slot 0/1 to the reserved last two 2-KiB flash pages. */
+const uint8_t *Board_PairingSlotBytes(uint8_t slot);
+
+/** Erase one reserved pairing-journal page. 1=success. */
+uint8_t Board_PairingEraseSlot(uint8_t slot);
+
+/** Program one reserved pairing-journal page from a doubleword-aligned buffer. */
+uint8_t Board_PairingProgramSlot(uint8_t slot, const uint8_t *data, uint32_t length);
 
 #ifdef __cplusplus
 }

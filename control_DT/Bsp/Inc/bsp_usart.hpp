@@ -72,10 +72,21 @@ public:
     /** 发端无 DMA RX，这里只 Abort，保证配置收发前 gState=READY。 */
     void stop_rx();
 
+    /**
+     * @brief 启动 USART Idle-IT 接收，供配对 ACK 使用。
+     *
+     * 只 AbortReceive，不打断正在进行的 IT 发送。回调后由本类重新装载。
+     */
+    bool start_idle_rx(uint8_t *buf, uint16_t size, RxCallback callback);
+
+    /** 只停 RX，不清 TX busy。 */
+    void stop_idle_rx();
+
     UART_HandleTypeDef *handle();
 
     /* HAL 弱回调转发入口，不给 App 使用。 */
     static void handleTxCallback(UART_HandleTypeDef *huart);
+    static void handleRxEventCallback(UART_HandleTypeDef *huart, uint16_t size);
     static void handleErrorCallback(UART_HandleTypeDef *huart);
 
 private:
@@ -85,11 +96,17 @@ private:
     static USART_c *instances_[3];
     static uint8_t instance_count_;
 
+    bool arm_idle_rx();
+
     UART_HandleTypeDef *handle_;
     TxType_t tx_type_;
     volatile bool busy_;
     uint16_t last_rx_count_;
     uint32_t last_uart_error_;
+    uint8_t *rx_buf_;
+    uint16_t rx_buf_size_;
+    RxCallback rx_callback_;
+    volatile bool idle_rx_active_;
 };
 
 } /* namespace BSP_n */

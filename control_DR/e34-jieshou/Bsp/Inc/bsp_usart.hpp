@@ -31,13 +31,21 @@ public:
     /**
      * @brief 启动或重新启动 Receive-to-IDLE DMA。
      *
-     * 先停 DMA、清 IDLE/错误标志，再启动；成功后关闭 HT 中断，
+     * 只 AbortReceive，不清正在进行的 IT 发送。成功后关闭 HT 中断，
      * 避免半满事件被当成一帧。
      */
     bool start_rx();
 
     /** 配置前停 DMA/Abort，避免阻塞收发和 DMA 抢 RX。 */
     void stop_rx();
+
+    /**
+     * @brief 中断发送。忙或 gState 非 READY 时返回 false，不排队、不覆盖。
+     */
+    bool send(const uint8_t *data, uint16_t size);
+
+    /** IT 发送尚未完成时为 true。 */
+    bool is_busy() const;
 
     /** 阻塞发送，供 E22 配置命令使用。 */
     bool transmit_block(const uint8_t *data, uint16_t size, uint32_t timeout_ms);
@@ -65,6 +73,7 @@ public:
     UART_HandleTypeDef *handle();
 
     /* HAL 弱回调转发入口，不给 App 使用。 */
+    static void handleTxCallback(UART_HandleTypeDef *huart);
     static void handleRxEventCallback(UART_HandleTypeDef *huart, uint16_t size);
     static void handleErrorCallback(UART_HandleTypeDef *huart);
 
@@ -81,6 +90,7 @@ private:
     RxCallback rx_callback_;
     ErrorCallback error_callback_;
     int32_t last_start_status_;
+    volatile bool busy_;
 };
 
 } /* namespace BSP_n */

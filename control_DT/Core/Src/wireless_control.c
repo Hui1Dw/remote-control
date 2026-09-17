@@ -2,11 +2,13 @@
  * @file wireless_control.c
  * @brief E22-1 wireless control-frame packer and USART1 sender.
  *
- * Frames use the fixed 14-byte format documented in
- * ../../无线控制帧协议.md. Input values are taken only from the processed,
- * debounced public state objects. USART1 is used as the primary E22 link:
- * PA9/PA10 are TX/RX and PA8 (AUX) must be high before a frame is submitted.
- * USART1 TX is interrupt-driven; the static TX buffer stays valid until complete.
+ * Application payload remains the fixed 14-byte format documented in
+ * ../../无线控制帧协议.md. In E22 fixed-point mode the UART packet is
+ * destination ADDH/ADDL/CHAN plus that 14-byte payload. Input values are
+ * taken only from the processed, debounced public state objects. USART1 is
+ * the primary E22 link: PA9/PA10 are TX/RX and PA8 (AUX) must be high before
+ * a frame is submitted. USART1 TX is interrupt-driven; the static TX buffer
+ * stays valid until complete.
  */
 #include "wireless_control.h"
 
@@ -32,7 +34,10 @@
 static uint32_t wireless_control_tx_tick;
 static uint32_t wireless_control_tx_period_ms = WIRELESS_CONTROL_TX_PERIOD_DEFAULT_MS;
 static uint8_t wireless_control_sequence;
-static uint8_t wireless_control_tx_frame[WIRELESS_CONTROL_FRAME_SIZE];
+static uint8_t wireless_control_tx_enabled = 1U;
+static uint16_t wireless_control_destination;
+static uint8_t wireless_control_tx_packet[WIRELESS_E22_FIXED_HEADER_SIZE +
+                                          WIRELESS_CONTROL_FRAME_SIZE];
 
 static uint16_t WirelessControl_CalculateCrc16(const uint8_t *data, uint8_t length)
 {
@@ -179,6 +184,13 @@ static void WirelessControl_UpdateDebugFrame(const uint8_t *frame)
   debug.wireless.last_frame_valid = 1U;
 }
 
+void WirelessControl_SetDestination(uint16_t address)
+{
+  wireless_control_destination = address;
+  debug.wireless.destination_address = address;
+  debug.wireless.destination_channel = WIRELESS_E22_TARGET_CHANNEL;
+}
+
 void WirelessControl_SetTxPeriodMs(uint32_t period_ms)
 {
   if (period_ms == 0U)
@@ -189,6 +201,11 @@ void WirelessControl_SetTxPeriodMs(uint32_t period_ms)
   debug.wireless.diagnostics.tx_period_ms = period_ms;
 }
 
+void WirelessControl_SetTxEnabled(uint8_t enabled)
+{
+  wireless_control_tx_enabled = (enabled != 0U) ? 1U : 0U;
+}
+
 void WirelessControl_Init(void)
 {
   wireless_control_tx_tick = Bsp_NowMs();
@@ -196,9 +213,13 @@ void WirelessControl_Init(void)
   debug.wireless.diagnostics.tx_success_count = 0U;
   debug.wireless.diagnostics.tx_error_count = 0U;
   debug.wireless.diagnostics.tx_busy_skip_count = 0U;
+  debug.wireless.diagnostics.tx_quiet_skip_count = 0U;
   debug.wireless.diagnostics.last_tx_status = 0U;
   debug.wireless.diagnostics.tx_period_ms = wireless_control_tx_period_ms;
   debug.wireless.last_frame_valid = 0U;
+  debug.wireless.last_tx_size = 0U;
+  debug.wireless.destination_address = wireless_control_destination;
+  debug.wireless.destination_channel = WIRELESS_E22_TARGET_CHANNEL;
 }
 
 void WirelessControl_Update(void)
@@ -214,6 +235,12 @@ void WirelessControl_Update(void)
   /* Do not catch up with bursts after a delayed loop or a busy module. */
   wireless_control_tx_tick = now;
 
+  if (wireless_control_tx_enabled == 0U)
+  {
+    debug.wireless.diagnostics.tx_quiet_skip_count++;
+    return;
+  }
+
   /* AUX 低：模块还在空中发送。TxBusy：上一帧 UART IT 尚未发完。都不覆盖缓冲。 */
   if ((WirelessControl_TxReady() == 0U) || (Board_E34_1_TxBusy() != 0U))
   {
@@ -221,11 +248,17 @@ void WirelessControl_Update(void)
     return;
   }
 
-  WirelessControl_BuildFrame(wireless_control_tx_frame);
-  WirelessControl_UpdateDebugFrame(wireless_control_tx_frame);
-  /* static wireless_control_tx_frame 必须保持到 USART1 TX 完成回调。 */
-  status = Board_E34_1_Transmit(wireless_control_tx_frame,
-                                WIRELESS_CONTROL_FRAME_SIZE,
+  wireless_control_tx_packet[0] = (uint8_t)(wireless_control_destination >> 8U);
+  wireless_control_tx_packet[1] = (uint8_t)wireless_control_destination;
+  wireless_control_tx_packet[2] = WIRELESS_E22_TARGET_CHANNEL;
+  WirelessControl_BuildFrame(&wireless_control_tx_packet[WIRELESS_E22_FIXED_HEADER_SIZE]);
+  WirelessControl_UpdateDebugFrame(&wireless_control_tx_packet[WIRELESS_E22_FIXED_HEADER_SIZE]);
+  debug.wireless.last_tx_size = (uint8_t)sizeof(wireless_control_tx_packet);
+  debug.wireless.destination_address = wireless_control_destination;
+  debug.wireless.destination_channel = WIRELESS_E22_TARGET_CHANNEL;
+  /* static wireless_control_tx_packet 必须保持到 USART1 TX 完成回调。 */
+  status = Board_E34_1_Transmit(wireless_control_tx_packet,
+                                (uint16_t)sizeof(wireless_control_tx_packet),
                                 WIRELESS_CONTROL_UART_TIMEOUT_MS);
   debug.wireless.diagnostics.last_tx_status = status;
 

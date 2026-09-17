@@ -31,7 +31,15 @@ USART_c *USART_c::FindInstanceByHandle(UART_HandleTypeDef *huart)
 }
 
 USART_c::USART_c(UART_HandleTypeDef *handle, TxType_t tx_type)
-    : handle_(handle), tx_type_(tx_type), busy_(false), last_rx_count_(0U), last_uart_error_(0U)
+    : handle_(handle),
+      tx_type_(tx_type),
+      busy_(false),
+      last_rx_count_(0U),
+      last_uart_error_(0U),
+      rx_buf_(nullptr),
+      rx_buf_size_(0U),
+      rx_callback_(nullptr),
+      idle_rx_active_(false)
 {
     RegisterInstance(this);
 }
@@ -148,6 +156,7 @@ bool USART_c::set_baud(uint32_t baud)
         return false;
     }
 
+    idle_rx_active_ = false;
     busy_ = false;
     (void)HAL_UART_Abort(handle_);
     handle_->Init.BaudRate = baud;
@@ -161,9 +170,46 @@ void USART_c::stop_rx()
         return;
     }
 
+    idle_rx_active_ = false;
     busy_ = false;
     (void)HAL_UART_Abort(handle_);
     drain_rx();
+}
+
+bool USART_c::arm_idle_rx()
+{
+    if ((handle_ == nullptr) || (rx_buf_ == nullptr) || (rx_buf_size_ == 0U) ||
+        (!idle_rx_active_))
+    {
+        return false;
+    }
+
+    (void)HAL_UART_AbortReceive(handle_);
+    return HAL_UARTEx_ReceiveToIdle_IT(handle_, rx_buf_, rx_buf_size_) == HAL_OK;
+}
+
+bool USART_c::start_idle_rx(uint8_t *buf, uint16_t size, RxCallback callback)
+{
+    if ((handle_ == nullptr) || (buf == nullptr) || (size == 0U) ||
+        (callback == nullptr))
+    {
+        return false;
+    }
+
+    rx_buf_ = buf;
+    rx_buf_size_ = size;
+    rx_callback_ = callback;
+    idle_rx_active_ = true;
+    return arm_idle_rx();
+}
+
+void USART_c::stop_idle_rx()
+{
+    idle_rx_active_ = false;
+    if (handle_ != nullptr)
+    {
+        (void)HAL_UART_AbortReceive(handle_);
+    }
 }
 
 void USART_c::handleTxCallback(UART_HandleTypeDef *huart)
@@ -175,12 +221,45 @@ void USART_c::handleTxCallback(UART_HandleTypeDef *huart)
     }
 }
 
+void USART_c::handleRxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
+{
+    USART_c *instance = FindInstanceByHandle(huart);
+    if (instance == nullptr)
+    {
+        return;
+    }
+
+    if ((instance->rx_callback_ != nullptr) && (instance->rx_buf_ != nullptr) &&
+        (size > 0U))
+    {
+        instance->rx_callback_(instance->rx_buf_, size);
+    }
+
+    if (instance->idle_rx_active_)
+    {
+        (void)instance->arm_idle_rx();
+    }
+}
+
 void USART_c::handleErrorCallback(UART_HandleTypeDef *huart)
 {
     USART_c *instance = FindInstanceByHandle(huart);
-    if (instance != nullptr)
+    HAL_UART_StateTypeDef state;
+
+    if (instance == nullptr)
+    {
+        return;
+    }
+
+    state = instance->handle_->gState;
+    if ((state != HAL_UART_STATE_BUSY_TX) && (state != HAL_UART_STATE_BUSY_TX_RX))
     {
         instance->busy_ = false;
+    }
+
+    if (instance->idle_rx_active_)
+    {
+        (void)instance->arm_idle_rx();
     }
 }
 
@@ -189,6 +268,11 @@ void USART_c::handleErrorCallback(UART_HandleTypeDef *huart)
 extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
     BSP_n::USART_c::handleTxCallback(huart);
+}
+
+extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{
+    BSP_n::USART_c::handleRxEventCallback(huart, Size);
 }
 
 extern "C" void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)

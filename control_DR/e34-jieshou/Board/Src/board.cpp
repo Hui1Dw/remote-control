@@ -7,6 +7,7 @@
 #include "debug.h"
 
 extern "C" {
+#include "pairing_rx.h"
 #include "receiver_control.h"
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
@@ -17,6 +18,10 @@ namespace
 {
 constexpr uint16_t kUartRxBufSize = 256U;
 constexpr uint32_t kAuxSettleMs = 2U;
+constexpr uint32_t kPairingSlotAddress[BOARD_PAIRING_SLOT_COUNT] = {
+    0x0801F000U,
+    0x0801F800U,
+};
 
 uint8_t usart1_rx_buf[kUartRxBufSize];
 uint8_t usart2_rx_buf[kUartRxBufSize];
@@ -105,8 +110,11 @@ void handle_rx(uint8_t src, BSP_n::USART_c &uart, const uint8_t *data, uint16_t 
         debug.uart[src].rx_count++;
     }
 
-    /* 中断里只解析和更新 debug；Apply 仍在 ReceiverControl_Poll。 */
-    ReceiverControl_PushBuffer(src, data, size);
+    /* 中断里只解析和更新 debug；ACK/改址/Flash 仍在 PairingRx_Poll。 */
+    if (PairingRx_PushBuffer(src, data, size) == 0U)
+    {
+        ReceiverControl_PushBuffer(src, data, size);
+    }
     restart_rx(src, uart);
 }
 
@@ -272,6 +280,36 @@ extern "C" void Board_RadioStopRx(uint8_t index)
     radio_uart[index]->stop_rx();
 }
 
+extern "C" uint8_t Board_RadioAuxLevel(uint8_t index)
+{
+    if (!valid_index(index))
+    {
+        return 0U;
+    }
+
+    return radio_aux[index].is_set() ? 1U : 0U;
+}
+
+extern "C" uint8_t Board_RadioTxBusy(uint8_t index)
+{
+    if (!valid_index(index))
+    {
+        return 1U;
+    }
+
+    return radio_uart[index]->is_busy() ? 1U : 0U;
+}
+
+extern "C" uint8_t Board_RadioTransmit(uint8_t index, const uint8_t *data, uint16_t size)
+{
+    if (!valid_index(index) || (data == nullptr) || (size == 0U))
+    {
+        return 1U;
+    }
+
+    return radio_uart[index]->send(data, size) ? 0U : 1U;
+}
+
 extern "C" uint32_t Board_NowMs(void)
 {
     return Bsp_NowMs();
@@ -300,4 +338,41 @@ extern "C" void Board_UsbUpdateDebug(void)
 extern "C" void Board_SystemReset(void)
 {
     NVIC_SystemReset();
+}
+
+
+static uint8_t valid_pairing_slot(uint8_t slot)
+{
+    return (slot < BOARD_PAIRING_SLOT_COUNT) ? 1U : 0U;
+}
+
+extern "C" const uint8_t *Board_PairingSlotBytes(uint8_t slot)
+{
+    if (valid_pairing_slot(slot) == 0U)
+    {
+        return nullptr;
+    }
+
+    return reinterpret_cast<const uint8_t *>(kPairingSlotAddress[slot]);
+}
+
+extern "C" uint8_t Board_PairingEraseSlot(uint8_t slot)
+{
+    if (valid_pairing_slot(slot) == 0U)
+    {
+        return 0U;
+    }
+
+    return Bsp_FlashErasePages(kPairingSlotAddress[slot], BOARD_PAIRING_SLOT_SIZE);
+}
+
+extern "C" uint8_t Board_PairingProgramSlot(uint8_t slot, const uint8_t *data, uint32_t length)
+{
+    if ((valid_pairing_slot(slot) == 0U) || (data == nullptr) ||
+        (length == 0U) || (length > BOARD_PAIRING_SLOT_SIZE))
+    {
+        return 0U;
+    }
+
+    return Bsp_FlashProgram(kPairingSlotAddress[slot], data, length);
 }

@@ -1,6 +1,7 @@
 #include "board.h"
 
 #include "adc.h"
+#include "bsp.h"
 #include "bsp_adc.hpp"
 #include "bsp_gpio.hpp"
 #include "bsp_time.hpp"
@@ -10,6 +11,10 @@
 namespace
 {
 constexpr uint32_t kAuxSettleMs = 2U;
+constexpr uint32_t kPairingSlotAddress[BOARD_PAIRING_SLOT_COUNT] = {
+    0x0801F000U,
+    0x0801F800U,
+};
 
 BSP_n::USART_c usart1{&huart1, BSP_n::USART_c::TxType_t::IT};
 BSP_n::USART_c usart2{&huart2, BSP_n::USART_c::TxType_t::BLOCK};
@@ -41,6 +46,17 @@ constexpr uint32_t radio_rx_af[BOARD_RADIO_COUNT] = {
     GPIO_AF7_USART3,
 };
 BSP_n::USART_c *radio_uart[BOARD_RADIO_COUNT] = {&usart1, &usart2, &usart3};
+constexpr uint16_t kIdleRxBufSize = 64U;
+uint8_t usart1_idle_rx_buf[kIdleRxBufSize];
+Board_RadioRxCallback usart1_idle_rx_callback = nullptr;
+
+void on_usart1_idle_rx(const uint8_t *data, uint16_t size)
+{
+    if (usart1_idle_rx_callback != nullptr)
+    {
+        usart1_idle_rx_callback(data, size);
+    }
+}
 
 BSP_n::ADC_c joystick_adc1{&hadc1};
 BSP_n::ADC_c joystick_adc2{&hadc2};
@@ -291,7 +307,37 @@ extern "C" void Board_RadioStopRx(uint8_t index)
         return;
     }
 
+    if (index == 0U)
+    {
+        usart1_idle_rx_callback = nullptr;
+        radio_uart[index]->stop_idle_rx();
+    }
     radio_uart[index]->stop_rx();
+}
+
+extern "C" uint8_t Board_RadioStartIdleRx(uint8_t index, Board_RadioRxCallback callback)
+{
+    if ((index != 0U) || (callback == nullptr) || (!valid_index(index)))
+    {
+        return 0U;
+    }
+
+    usart1_idle_rx_callback = callback;
+    return radio_uart[index]->start_idle_rx(usart1_idle_rx_buf, kIdleRxBufSize,
+                                            on_usart1_idle_rx)
+               ? 1U
+               : 0U;
+}
+
+extern "C" void Board_RadioStopIdleRx(uint8_t index)
+{
+    if (index != 0U)
+    {
+        return;
+    }
+
+    usart1_idle_rx_callback = nullptr;
+    radio_uart[index]->stop_idle_rx();
 }
 
 extern "C" uint8_t Board_JoystickCalibrate(void)
@@ -387,4 +433,46 @@ extern "C" uint8_t Board_ToggleBIsLow(uint8_t index)
     }
 
     return toggle_b[index].is_reset() ? 1U : 0U;
+}
+
+extern "C" uint32_t Board_NowMs(void)
+{
+    return BSP_n::Time_c::now_ms();
+}
+
+
+static uint8_t valid_pairing_slot(uint8_t slot)
+{
+    return (slot < BOARD_PAIRING_SLOT_COUNT) ? 1U : 0U;
+}
+
+extern "C" const uint8_t *Board_PairingSlotBytes(uint8_t slot)
+{
+    if (valid_pairing_slot(slot) == 0U)
+    {
+        return nullptr;
+    }
+
+    return reinterpret_cast<const uint8_t *>(kPairingSlotAddress[slot]);
+}
+
+extern "C" uint8_t Board_PairingEraseSlot(uint8_t slot)
+{
+    if (valid_pairing_slot(slot) == 0U)
+    {
+        return 0U;
+    }
+
+    return Bsp_FlashErasePages(kPairingSlotAddress[slot], BOARD_PAIRING_SLOT_SIZE);
+}
+
+extern "C" uint8_t Board_PairingProgramSlot(uint8_t slot, const uint8_t *data, uint32_t length)
+{
+    if ((valid_pairing_slot(slot) == 0U) || (data == nullptr) ||
+        (length == 0U) || (length > BOARD_PAIRING_SLOT_SIZE))
+    {
+        return 0U;
+    }
+
+    return Bsp_FlashProgram(kPairingSlotAddress[slot], data, length);
 }

@@ -51,9 +51,14 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_gpio.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_usart.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_adc.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_flash.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Board/Src/board.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/e22_provisioning.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/pairing_config.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/pairing_input.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/pairing_protocol.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/pairing_tx.c
 )
 
 # Add include paths

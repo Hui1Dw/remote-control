@@ -80,13 +80,43 @@ typedef struct
         uint32_t mcu_baud[3];            /* 各路 MCU 工作波特率；失败保持 9600 */
         uint8_t ok[3];                   /* 各路配置成功，0=USART1 E22-400 */
         uint8_t readback_ok[3];          /* 各路收到 C1 头 */
+        uint8_t readback_addh[3];         /* 回读 ADDH，收端出厂 0x02 */
+        uint8_t readback_addl[3];         /* 回读 ADDL，收端出厂 0x07 */
         uint8_t readback_reg0[3];        /* 回读 REG0：高3位 UART，低3位空中速率，目标 0xE6 */
         uint8_t readback_reg1[3];        /* 回读 REG1，目标 0x00 */
-        uint8_t readback_reg3[3];        /* 回读 REG3，必须 0x00 透传，禁止 0x43 */
+        uint8_t readback_reg3[3];        /* 回读 REG3，定点必须 0x43 */
         uint8_t readback_channel[3];     /* 回读 CHAN，目标 23 */
         uint8_t attempt_count[3];        /* 各路配置尝试次数 */
         uint8_t last_error[3];           /* 0无 1AUX超时 2TX失败 3RX失败 4回读不符 5改波特失败 */
     } e22;                             /* 上电一次性 E22 寄存器配置诊断 */
+    struct
+    {
+        uint8_t flash_valid;                  /* 1=Flash 存在 CRC 有效配对记录；强制出厂也不擦除 */
+        uint8_t forced_factory;               /* 1=本次启动被调试宏覆盖为出厂配置 */
+        uint8_t factory_default;              /* 1=当前 RAM 运行配置是出厂默认 */
+        uint8_t current_pair_number;          /* 当前运行配对号；出厂覆盖后为 0 */
+        uint16_t current_transmitter_address; /* 对应发射机地址，出厂 0x0107 */
+        uint16_t current_receiver_address;    /* 当前本机 ADDH/ADDL，出厂 0x0207 */
+        uint32_t current_generation;          /* Flash generation；出厂覆盖后为 0 */
+        uint8_t reg3;                         /* 本次写入 E22 的 REG3，定点 0x43 */
+        uint8_t txn_state;                    /* 0空闲 1ACK Beacon 2改址前等待 3改址后等待 4等VERIFY 5成功 6失败 */
+        uint8_t last_command;                 /* 最近一次有效配对命令 */
+        uint8_t last_error;                   /* 0无 1非出厂 2会话冲突 3E22 4Flash 5VERIFY超时 */
+        uint8_t last_source;                  /* 最近配对帧串口：0=USART1 */
+        uint8_t beacon_running;               /* 1=正在重复发 PREPARE_ACK */
+        uint8_t last_pair_number;             /* 当前事务配对号 */
+        uint16_t last_transmitter_address;    /* 当前事务 TX 地址 */
+        uint16_t last_receiver_address;       /* 当前事务 RX 地址 */
+        uint32_t last_session_id;             /* 当前事务 session */
+        uint32_t prepare_count;               /* 收到 PREPARE 次数，含重复 */
+        uint32_t ack_tx_count;                /* PREPARE_ACK 提交成功次数 */
+        uint32_t committed_tx_count;          /* COMMITTED 提交成功次数 */
+        uint32_t verify_count;                /* 收到 VERIFY 次数 */
+        uint32_t ok_tx_count;                 /* OK 提交成功次数 */
+        uint32_t tx_skip_count;               /* AUX 低或 UART 忙而跳过配对发送的次数 */
+        uint32_t success_count;               /* 完整事务成功次数 */
+        uint32_t fail_count;                  /* 事务失败次数 */
+    } pairing;                             /* 定点身份 + 空中配对事务 */
     struct
     {
         uint8_t init_ok;                 /* 1=HSI48/CRS/PCD/CDC 启动成功 */

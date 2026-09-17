@@ -40,7 +40,8 @@ USART_c::USART_c(UART_HandleTypeDef *handle,
       rx_buf_size_(rx_buf_size),
       rx_callback_(rx_callback),
       error_callback_(error_callback),
-      last_start_status_(static_cast<int32_t>(HAL_ERROR))
+      last_start_status_(static_cast<int32_t>(HAL_ERROR)),
+      busy_(false)
 {
     RegisterInstance(this);
 }
@@ -126,10 +127,37 @@ bool USART_c::set_baud(uint32_t baud)
         return false;
     }
 
+    busy_ = false;
     (void)HAL_UART_DMAStop(handle_);
     (void)HAL_UART_Abort(handle_);
     handle_->Init.BaudRate = baud;
     return HAL_UART_Init(handle_) == HAL_OK;
+}
+
+bool USART_c::send(const uint8_t *data, uint16_t size)
+{
+    if ((handle_ == nullptr) || (data == nullptr) || (size == 0U))
+    {
+        return false;
+    }
+
+    if (busy_ || (handle_->gState != HAL_UART_STATE_READY))
+    {
+        return false;
+    }
+
+    busy_ = true;
+    if (HAL_UART_Transmit_IT(handle_, const_cast<uint8_t *>(data), size) != HAL_OK)
+    {
+        busy_ = false;
+        return false;
+    }
+    return true;
+}
+
+bool USART_c::is_busy() const
+{
+    return busy_;
 }
 
 bool USART_c::start_rx()
@@ -142,7 +170,8 @@ bool USART_c::start_rx()
         return false;
     }
 
-    (void)HAL_UART_DMAStop(handle_);
+    /* 只停 RX。DMAStop/Abort 会把 gState 打回 READY，配对 ACK 的 IT 发送会被掐掉。 */
+    (void)HAL_UART_AbortReceive(handle_);
     /* 清掉上电残留或错误后的 IDLE/ORE，避免立刻再进一次空事件或接收被卡死。 */
     __HAL_UART_CLEAR_FLAG(handle_,
                           UART_CLEAR_IDLEF | UART_CLEAR_OREF | UART_CLEAR_NEF |
@@ -162,6 +191,15 @@ bool USART_c::start_rx()
     return false;
 }
 
+void USART_c::handleTxCallback(UART_HandleTypeDef *huart)
+{
+    USART_c *instance = FindInstanceByHandle(huart);
+    if (instance != nullptr)
+    {
+        instance->busy_ = false;
+    }
+}
+
 void USART_c::handleRxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
 {
     USART_c *instance = FindInstanceByHandle(huart);
@@ -174,13 +212,31 @@ void USART_c::handleRxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
 void USART_c::handleErrorCallback(UART_HandleTypeDef *huart)
 {
     USART_c *instance = FindInstanceByHandle(huart);
-    if ((instance != nullptr) && (instance->error_callback_ != nullptr))
+    HAL_UART_StateTypeDef state;
+
+    if (instance == nullptr)
+    {
+        return;
+    }
+
+    state = instance->handle_->gState;
+    if ((state != HAL_UART_STATE_BUSY_TX) && (state != HAL_UART_STATE_BUSY_TX_RX))
+    {
+        instance->busy_ = false;
+    }
+
+    if (instance->error_callback_ != nullptr)
     {
         instance->error_callback_(huart->ErrorCode);
     }
 }
 
 } /* namespace BSP_n */
+
+extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+    BSP_n::USART_c::handleTxCallback(huart);
+}
 
 extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {

@@ -91,9 +91,13 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${PROJECT_SOURCE_DIR}/Bsp/Src/bsp_gpio.cpp
     ${PROJECT_SOURCE_DIR}/Bsp/Src/bsp_usart.cpp
     ${PROJECT_SOURCE_DIR}/Bsp/Src/bsp_usb.c
+    ${PROJECT_SOURCE_DIR}/Bsp/Src/bsp_flash.cpp
     ${PROJECT_SOURCE_DIR}/Board/Src/board.cpp
     ${PROJECT_SOURCE_DIR}/App/Src/app.c
     ${PROJECT_SOURCE_DIR}/App/Src/e22_provisioning.c
+    ${PROJECT_SOURCE_DIR}/App/Src/pairing_config.c
+    ${PROJECT_SOURCE_DIR}/App/Src/pairing_protocol.c
+    ${PROJECT_SOURCE_DIR}/App/Src/pairing_rx.c
     ${PROJECT_SOURCE_DIR}/App/Src/maintenance.c
     ${PROJECT_SOURCE_DIR}/USB_DEVICE/App/usb_device.c
     ${PROJECT_SOURCE_DIR}/USB_DEVICE/App/usbd_desc.c

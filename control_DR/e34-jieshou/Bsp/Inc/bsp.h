@@ -12,6 +12,10 @@ extern "C" {
 uint32_t Bsp_NowMs(void);
 void Bsp_DelayMs(uint32_t ms);
 
+/* Flash helpers used by the pairing journal. App never includes HAL. */
+uint8_t Bsp_FlashErasePages(uint32_t address, uint32_t length);
+uint8_t Bsp_FlashProgram(uint32_t address, const uint8_t *data, uint32_t length);
+
 uint8_t Bsp_UsbWrite(const uint8_t *data, uint16_t len);
 uint16_t Bsp_UsbRead(uint8_t *data, uint16_t max_len);
 uint8_t Bsp_UsbConfigured(void);

@@ -8,6 +8,8 @@ extern "C" {
 #include <stdint.h>
 
 #define BOARD_RADIO_COUNT 3U
+#define BOARD_PAIRING_SLOT_COUNT 2U
+#define BOARD_PAIRING_SLOT_SIZE  0x800U
 
 /**
  * @brief 绑定本板三路 E22 USART 与 AUX。
@@ -64,7 +66,29 @@ uint8_t Board_RadioSetBaud(uint8_t index, uint32_t baud);
 /** 配置前停 DMA RX，避免和阻塞收发抢数据。 */
 void Board_RadioStopRx(uint8_t index);
 
+/** 立即读取 AUX 电平，不等待。1=高/空闲。 */
+uint8_t Board_RadioAuxLevel(uint8_t index);
+
+/** 该路 IT 发送尚未完成。 */
+uint8_t Board_RadioTxBusy(uint8_t index);
+
+/**
+ * @brief 提交该路一帧 IT 发送。
+ *
+ * 返回 0 表示已启动，非 0 表示忙或失败。缓冲必须保持到发送完成。
+ */
+uint8_t Board_RadioTransmit(uint8_t index, const uint8_t *data, uint16_t size);
+
 uint32_t Board_NowMs(void);
+
+/** Map pairing-journal slot 0/1 to the reserved last two 2-KiB flash pages. */
+const uint8_t *Board_PairingSlotBytes(uint8_t slot);
+
+/** Erase one reserved pairing-journal page. 1=success. */
+uint8_t Board_PairingEraseSlot(uint8_t slot);
+
+/** Program one reserved pairing-journal page from a doubleword-aligned buffer. */
+uint8_t Board_PairingProgramSlot(uint8_t slot, const uint8_t *data, uint32_t length);
 
 /** Non-blocking USB CDC write. 1=accepted, 0=not configured / TX busy / dropped. */
 uint8_t Board_UsbWrite(const uint8_t *data, uint16_t len);
