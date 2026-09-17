@@ -35,6 +35,8 @@ static uint32_t wireless_control_tx_tick;
 static uint32_t wireless_control_tx_period_ms = WIRELESS_CONTROL_TX_PERIOD_DEFAULT_MS;
 static uint32_t wireless_control_last_submit_tick_ms;
 static uint8_t wireless_control_has_submit;
+static uint8_t wireless_control_slot_due;
+static uint8_t wireless_control_busy_counted;
 static uint8_t wireless_control_sequence;
 static uint8_t wireless_control_tx_enabled = 1U;
 static uint16_t wireless_control_destination;
@@ -222,6 +224,8 @@ void WirelessControl_Init(void)
   debug.wireless.diagnostics.max_submit_interval_ms = 0U;
   wireless_control_last_submit_tick_ms = 0U;
   wireless_control_has_submit = 0U;
+  wireless_control_slot_due = 0U;
+  wireless_control_busy_counted = 0U;
   debug.wireless.last_frame_valid = 0U;
   debug.wireless.last_tx_size = 0U;
   debug.wireless.destination_address = wireless_control_destination;
@@ -233,28 +237,43 @@ void WirelessControl_Update(void)
   uint8_t status;
   uint32_t now = Bsp_NowMs();
 
-  if ((now - wireless_control_tx_tick) < wireless_control_tx_period_ms)
+  if ((wireless_control_slot_due == 0U) &&
+      ((now - wireless_control_tx_tick) >= wireless_control_tx_period_ms))
+  {
+    /* 10 ms 采样已到。AUX 忙时保留时隙，下一圈重试最新值，不排队、不补发。 */
+    wireless_control_slot_due = 1U;
+    wireless_control_busy_counted = 0U;
+  }
+
+  if (wireless_control_slot_due == 0U)
   {
     return;
   }
-
-  /* Do not catch up with bursts after a delayed loop or a busy module. */
-  wireless_control_tx_tick = now;
 
   if (wireless_control_tx_enabled == 0U)
   {
     debug.wireless.diagnostics.tx_quiet_skip_count++;
     /* 配对静默会拉长间隔，不计入空口占用测量。 */
     wireless_control_has_submit = 0U;
+    wireless_control_slot_due = 0U;
+    wireless_control_tx_tick = now;
     return;
   }
 
   /* AUX 低：模块还在空中发送。TxBusy：上一帧 UART IT 尚未发完。都不覆盖缓冲。 */
   if ((WirelessControl_TxReady() == 0U) || (Board_E34_1_TxBusy() != 0U))
   {
-    debug.wireless.diagnostics.tx_busy_skip_count++;
+    if (wireless_control_busy_counted == 0U)
+    {
+      debug.wireless.diagnostics.tx_busy_skip_count++;
+      wireless_control_busy_counted = 1U;
+    }
     return;
   }
+
+  /* 成功提交后才开始下一个 10 ms，避免 12 ms AUX 高却等到 20 ms。 */
+  wireless_control_slot_due = 0U;
+  wireless_control_tx_tick = now;
 
   wireless_control_tx_packet[0] = (uint8_t)(wireless_control_destination >> 8U);
   wireless_control_tx_packet[1] = (uint8_t)wireless_control_destination;
