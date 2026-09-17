@@ -82,7 +82,7 @@ typedef struct
         uint8_t readback_ok[3];          /* 各路收到 C1 头 */
         uint8_t readback_addh[3];         /* 回读 ADDH，收端出厂 0x02 */
         uint8_t readback_addl[3];         /* 回读 ADDL，收端出厂 0x07 */
-        uint8_t readback_reg0[3];        /* 回读 REG0：高3位 UART，低3位空中速率，目标 0xE6 */
+        uint8_t readback_reg0[3];        /* 回读 REG0：400/900 目标 0xE7；230 只保证高5位 0xE0 */
         uint8_t readback_reg1[3];        /* 回读 REG1，目标 0x00 */
         uint8_t readback_reg3[3];        /* 回读 REG3，定点必须 0x43 */
         uint8_t readback_channel[3];     /* 回读 CHAN，目标 23 */
@@ -127,6 +127,13 @@ typedef struct
         uint32_t tx_busy_drop;           /* 未配置或 TX 忙而丢弃的次数 */
         uint32_t cmd_count;              /* 回显提交次数；本阶段无命令协议 */
     } usb;                             /* USB CDC 维护通道诊断，不替代 Watch */
+    struct
+    {
+        uint32_t last_frame_to_apply_ms; /* ISR 解析成功到 Poll Apply，通常 0～1 */
+        uint32_t max_frame_to_apply_ms;  /* 上述间隔的最大值 */
+        uint32_t last_apply_interval_ms; /* 两次有效 Apply 间隔，近似空口更新周期 */
+        uint32_t max_apply_interval_ms;  /* 上述间隔的最大值 */
+    } timing;                          /* 接收热路径计时，1 ms 分辨率，不上 DWT */
 } Debug_t;
 
 extern volatile Debug_t debug; /* 接收端公开调试状态，Watch 此变量 */

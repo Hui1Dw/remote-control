@@ -235,16 +235,9 @@ static void PairingTx_UpdateIdentityWatch(const PairingConfig_t *config)
 static void PairingTx_HandleCommitted(void)
 {
   PairingConfig_t committed_config;
-  PairingConfig_t previous_config;
   uint16_t previous_address;
-  uint8_t index;
 
   previous_address = debug.pairing.current_transmitter_address;
-  previous_config.transmitter_address = previous_address;
-  previous_config.receiver_address = debug.pairing.current_receiver_address;
-  previous_config.pair_number = debug.pairing.current_pair_number;
-  previous_config.factory_default = pairing_factory_default;
-  previous_config.generation = debug.pairing.current_generation;
 
   PairingTx_StopIdleRx();
 
@@ -277,10 +270,6 @@ static void PairingTx_HandleCommitted(void)
   {
     PairingTx_Finish(0U, PAIRING_TX_ERR_BUILD);
     return;
-  }
-  for (index = 0U; index < PAIRING_PROTOCOL_FRAME_SIZE; index++)
-  {
-    (void)previous_config.pair_number;
   }
 
   txn_state = PAIRING_TX_TXN_WAIT_VERIFY;

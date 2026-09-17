@@ -15,7 +15,7 @@
 #define E22_COMMAND_SIZE                  12U
 
 #define E22_NETID                         0x00U
-#define E22_REG0_115200_8N1_38K4          0xE6U /* 111 00 110 */
+#define E22_REG0_115200_8N1_62K5          0xE7U /* 111 00 111 */
 #define E22_REG1_240B_22DBM               0x00U
 #define E22_CHANNEL                       23U
 #define E22_REG3_FIXED_POINT              0x43U /* 定点：模块剥掉目标 ADDH/ADDL/CHAN 后把 payload 交给 MCU */
@@ -108,7 +108,7 @@ static uint8_t E22_WriteRegisters(uint8_t index)
       0U,
       0U,
       E22_NETID,
-      E22_REG0_115200_8N1_38K4,
+      E22_REG0_115200_8N1_62K5,
       E22_REG1_240B_22DBM,
       E22_CHANNEL,
       E22_REG3_FIXED_POINT,

@@ -18,9 +18,12 @@ typedef struct
     uint8_t has_valid_frame;
     uint8_t unsafe_frame_received;
     uint8_t crc_fault;
+    uint8_t timing_pending;
 } ReceiverControl_Source;
 
 static ReceiverControl_Source receiver_control_sources[3];
+static uint32_t receiver_control_last_apply_tick;
+static uint8_t receiver_control_has_apply;
 
 static uint8_t ReceiverControl_SourceIsOnline(uint8_t source, uint32_t now)
 {
@@ -43,6 +46,8 @@ static void ReceiverControl_SetSafeState(uint8_t reason)
     {
         debug.safe_enter_count++;
         ReceiverControl_ApplySafeState();
+        /* 失联间隔不计入空口 Apply 周期，恢复后从下一帧重新起算。 */
+        receiver_control_has_apply = 0U;
     }
 
     debug.safe = 1U;
@@ -73,6 +78,7 @@ static void ReceiverControl_SetOutput(uint8_t source,
                                       const ControlProtocol_Frame *frame)
 {
     ReceiverControl_Output output;
+    ReceiverControl_Source *entry;
     uint8_t output_changed;
 
     output.left_y = frame->left_y;
@@ -96,6 +102,31 @@ static void ReceiverControl_SetOutput(uint8_t source,
     debug.safe = 0U;
     debug.safe_reason = RECEIVER_CONTROL_SAFE_REASON_NONE;
 
+    entry = &receiver_control_sources[source];
+    if (entry->timing_pending != 0U)
+    {
+        uint32_t now = Bsp_NowMs();
+        uint32_t frame_to_apply_ms = now - entry->last_valid_tick;
+        debug.timing.last_frame_to_apply_ms = frame_to_apply_ms;
+        if (frame_to_apply_ms > debug.timing.max_frame_to_apply_ms)
+        {
+            debug.timing.max_frame_to_apply_ms = frame_to_apply_ms;
+        }
+        entry->timing_pending = 0U;
+
+        if (receiver_control_has_apply != 0U)
+        {
+            uint32_t apply_interval_ms = now - receiver_control_last_apply_tick;
+            debug.timing.last_apply_interval_ms = apply_interval_ms;
+            if (apply_interval_ms > debug.timing.max_apply_interval_ms)
+            {
+                debug.timing.max_apply_interval_ms = apply_interval_ms;
+            }
+        }
+        receiver_control_last_apply_tick = now;
+        receiver_control_has_apply = 1U;
+    }
+
     /* State outputs are idempotent: a held button does not cause a repeated action. */
     if (output_changed != 0U)
     {
@@ -113,6 +144,8 @@ void ReceiverControl_Init(void)
         receiver_control_sources[source].has_valid_frame = 0U;
         receiver_control_sources[source].unsafe_frame_received = 0U;
         receiver_control_sources[source].crc_fault = 0U;
+        receiver_control_sources[source].timing_pending = 0U;
+        receiver_control_sources[source].last_valid_tick = 0U;
         debug.source_online[source] = 0U;
         debug.link[source].last_frame.sequence = 0U;
         debug.link[source].last_frame.left_y = 0;
@@ -134,6 +167,12 @@ void ReceiverControl_Init(void)
         debug.link[source].calibration_valid = 0U;
     }
 
+    debug.timing.last_frame_to_apply_ms = 0U;
+    debug.timing.max_frame_to_apply_ms = 0U;
+    debug.timing.last_apply_interval_ms = 0U;
+    debug.timing.max_apply_interval_ms = 0U;
+    receiver_control_last_apply_tick = 0U;
+    receiver_control_has_apply = 0U;
     debug.safe = 0U;
     debug.selected_source = RECEIVER_CONTROL_SOURCE_NONE;
     ReceiverControl_SetSafeState(RECEIVER_CONTROL_SAFE_REASON_NO_ONLINE_SOURCE);
@@ -176,6 +215,7 @@ void ReceiverControl_PushByte(uint8_t source, uint8_t byte)
     entry->last_valid_tick = Bsp_NowMs();
     entry->has_valid_frame = 1U;
     entry->crc_fault = 0U;
+    entry->timing_pending = 1U;
     debug.link[source].valid_frame_count++;
 
     entry->unsafe_frame_received =

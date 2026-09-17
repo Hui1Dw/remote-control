@@ -33,6 +33,8 @@
 
 static uint32_t wireless_control_tx_tick;
 static uint32_t wireless_control_tx_period_ms = WIRELESS_CONTROL_TX_PERIOD_DEFAULT_MS;
+static uint32_t wireless_control_last_submit_tick_ms;
+static uint8_t wireless_control_has_submit;
 static uint8_t wireless_control_sequence;
 static uint8_t wireless_control_tx_enabled = 1U;
 static uint16_t wireless_control_destination;
@@ -216,6 +218,10 @@ void WirelessControl_Init(void)
   debug.wireless.diagnostics.tx_quiet_skip_count = 0U;
   debug.wireless.diagnostics.last_tx_status = 0U;
   debug.wireless.diagnostics.tx_period_ms = wireless_control_tx_period_ms;
+  debug.wireless.diagnostics.last_submit_interval_ms = 0U;
+  debug.wireless.diagnostics.max_submit_interval_ms = 0U;
+  wireless_control_last_submit_tick_ms = 0U;
+  wireless_control_has_submit = 0U;
   debug.wireless.last_frame_valid = 0U;
   debug.wireless.last_tx_size = 0U;
   debug.wireless.destination_address = wireless_control_destination;
@@ -238,6 +244,8 @@ void WirelessControl_Update(void)
   if (wireless_control_tx_enabled == 0U)
   {
     debug.wireless.diagnostics.tx_quiet_skip_count++;
+    /* 配对静默会拉长间隔，不计入空口占用测量。 */
+    wireless_control_has_submit = 0U;
     return;
   }
 
@@ -266,6 +274,17 @@ void WirelessControl_Update(void)
   {
     debug.wireless.diagnostics.tx_success_count++;
     wireless_control_sequence++;
+    if (wireless_control_has_submit != 0U)
+    {
+      uint32_t interval_ms = now - wireless_control_last_submit_tick_ms;
+      debug.wireless.diagnostics.last_submit_interval_ms = interval_ms;
+      if (interval_ms > debug.wireless.diagnostics.max_submit_interval_ms)
+      {
+        debug.wireless.diagnostics.max_submit_interval_ms = interval_ms;
+      }
+    }
+    wireless_control_last_submit_tick_ms = now;
+    wireless_control_has_submit = 1U;
   }
   else
   {

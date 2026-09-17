@@ -28,6 +28,8 @@ typedef struct
   uint32_t tx_quiet_skip_count; /* 配对号输入期间主动暂停发送而跳过的次数 */
   uint8_t last_tx_status;      /* 最近一次提交结果，0=成功 */
   uint32_t tx_period_ms;       /* 当前发送周期。USART1 配置成功为 10，否则 20 */
+  uint32_t last_submit_interval_ms; /* 两次 UART 提交成功间隔；AUX 忙时常见约 20 */
+  uint32_t max_submit_interval_ms;  /* 上述间隔的最大值，1 ms 分辨率 */
 } WirelessControlDiagnostics_t;
 
 /**

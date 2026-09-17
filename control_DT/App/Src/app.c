@@ -58,7 +58,7 @@ uint8_t App_Init(void)
   WirelessControl_Init();
   if (debug.e22.ok[0] != 0U)
   {
-    /* USART1 已是 115200 + 38.4k 空中，才把发送周期收到 10 ms。 */
+    /* USART1 已是 115200 + 62.5k 空中，才把发送周期收到 10 ms。 */
     WirelessControl_SetTxPeriodMs(WIRELESS_CONTROL_TX_PERIOD_FAST_MS);
   }
   PairingTx_Init();

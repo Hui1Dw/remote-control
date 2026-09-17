@@ -19,6 +19,7 @@
 #define PAIRING_RX_OK_BEACON_PERIOD_MS    100U
 #define PAIRING_RX_OK_BEACON_DURATION_MS  2000U
 #define PAIRING_RX_SILENCE_MS             150U
+#define PAIRING_RX_TX_DRAIN_MS            500U
 #define PAIRING_RX_SETTLE_MS              100U
 #define PAIRING_RX_COMMITTED_RETRY_COUNT   10U
 #define PAIRING_RX_COMMITTED_INTERVAL_MS  300U
@@ -390,23 +391,29 @@ void PairingRx_Poll(void)
       {
         PairingRx_Finish(0U, PAIRING_RX_ERR_E22);
       }
-      else if (Board_RadioTxBusy(PAIRING_RX_RADIO_INDEX) == 0U)
+      else
       {
+        /* ACK 已发出后不再等 UART 空闲才切状态，避免 TxBusy 一直为 1 时卡死。 */
         txn_state = PAIRING_RX_TXN_WAIT_BEFORE_ADDR;
-        deadline_ms = now + PAIRING_RX_SILENCE_MS;
+        next_tx_ms = now + PAIRING_RX_SILENCE_MS;
+        deadline_ms = now + PAIRING_RX_SILENCE_MS + PAIRING_RX_TX_DRAIN_MS;
       }
     }
   }
   else if (txn_state == PAIRING_RX_TXN_WAIT_BEFORE_ADDR)
   {
-    if ((PairingRx_TimeReached(now, deadline_ms) != 0U) &&
-        (Board_RadioTxBusy(PAIRING_RX_RADIO_INDEX) == 0U))
+    if ((Board_RadioTxBusy(PAIRING_RX_RADIO_INDEX) == 0U) &&
+        (PairingRx_TimeReached(now, next_tx_ms) != 0U))
     {
       if (PairingRx_ApplyAddress() != 0U)
       {
         txn_state = PAIRING_RX_TXN_WAIT_AFTER_ADDR;
         deadline_ms = Board_NowMs() + PAIRING_RX_SETTLE_MS;
       }
+    }
+    else if (PairingRx_TimeReached(now, deadline_ms) != 0U)
+    {
+      PairingRx_Finish(0U, PAIRING_RX_ERR_E22);
     }
   }
   else if (txn_state == PAIRING_RX_TXN_WAIT_AFTER_ADDR)
