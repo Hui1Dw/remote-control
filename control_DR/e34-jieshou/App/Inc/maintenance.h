@@ -6,10 +6,10 @@ extern "C" {
 #endif
 
 /**
- * @brief Non-blocking USB CDC loopback.
+ * @brief Non-blocking USB CDC host stream.
  *
- * Must be called after ReceiverControl_Poll(). This stage only proves the
- * virtual COM port can receive and send; no maintenance protocol yet.
+ * Must be called after ReceiverControl_Poll(). Pushes a 24-byte CONTROL
+ * snapshot every 20 ms. Host bytes are drained and ignored in v1.
  * USB not connected or TX busy is skipped; the 300 ms failsafe is untouched.
  */
 void Maintenance_Poll(void);

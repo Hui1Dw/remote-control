@@ -330,9 +330,15 @@ extern "C" uint8_t Board_UsbConfigured(void)
     return Bsp_UsbConfigured();
 }
 
+extern "C" uint8_t Board_UsbHostOpen(void)
+{
+    return Bsp_UsbHostOpen();
+}
+
 extern "C" void Board_UsbUpdateDebug(void)
 {
     debug.usb.configured = Bsp_UsbConfigured();
+    debug.usb.dtr = Bsp_UsbHostOpen();
 }
 
 extern "C" void Board_SystemReset(void)

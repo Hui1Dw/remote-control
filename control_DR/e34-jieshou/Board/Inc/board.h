@@ -97,8 +97,9 @@ uint8_t Board_UsbWrite(const uint8_t *data, uint16_t len);
 uint16_t Board_UsbRead(uint8_t *data, uint16_t max_len);
 
 uint8_t Board_UsbConfigured(void);
+uint8_t Board_UsbHostOpen(void);
 
-/** Refresh debug.usb.configured from the USB stack. */
+/** Refresh debug.usb.configured / debug.usb.dtr from the USB stack. */
 void Board_UsbUpdateDebug(void);
 
 void Board_SystemReset(void);

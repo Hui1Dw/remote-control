@@ -99,6 +99,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${PROJECT_SOURCE_DIR}/App/Src/pairing_protocol.c
     ${PROJECT_SOURCE_DIR}/App/Src/pairing_rx.c
     ${PROJECT_SOURCE_DIR}/App/Src/maintenance.c
+    ${PROJECT_SOURCE_DIR}/App/Src/usb_host_protocol.c
     ${PROJECT_SOURCE_DIR}/USB_DEVICE/App/usb_device.c
     ${PROJECT_SOURCE_DIR}/USB_DEVICE/App/usbd_desc.c
     ${PROJECT_SOURCE_DIR}/USB_DEVICE/App/usbd_cdc_if.c

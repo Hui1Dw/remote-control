@@ -33,3 +33,8 @@ uint8_t Bsp_UsbConfigured(void)
 {
   return CDC_IsConfigured();
 }
+
+uint8_t Bsp_UsbHostOpen(void)
+{
+  return CDC_IsHostOpen();
+}

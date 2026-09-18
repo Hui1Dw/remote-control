@@ -19,6 +19,7 @@ uint8_t Bsp_FlashProgram(uint32_t address, const uint8_t *data, uint32_t length)
 uint8_t Bsp_UsbWrite(const uint8_t *data, uint16_t len);
 uint16_t Bsp_UsbRead(uint8_t *data, uint16_t max_len);
 uint8_t Bsp_UsbConfigured(void);
+uint8_t Bsp_UsbHostOpen(void);
 
 #ifdef __cplusplus
 }

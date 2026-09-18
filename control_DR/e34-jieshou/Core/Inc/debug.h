@@ -122,10 +122,11 @@ typedef struct
         uint8_t init_ok;                 /* 1=HSI48/CRS/PCD/CDC 启动成功 */
         uint8_t init_error;              /* 0无 1时钟 2USBD_Init 3RegisterClass 4RegisterInterface 5Start */
         uint8_t configured;              /* 1=主机已枚举配置 */
+        uint8_t dtr;                     /* 1=主机打开了 CDC（DTR） */
         uint32_t rx_count;               /* 已从主机收到的字节累计 */
         uint32_t tx_ok;                  /* 非阻塞提交成功次数 */
         uint32_t tx_busy_drop;           /* 未配置或 TX 忙而丢弃的次数 */
-        uint32_t cmd_count;              /* 回显提交次数；本阶段无命令协议 */
+        uint32_t cmd_count;              /* USB CONTROL 帧提交成功次数 */
     } usb;                             /* USB CDC 维护通道诊断，不替代 Watch */
     struct
     {
