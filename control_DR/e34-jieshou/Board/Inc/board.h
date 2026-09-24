@@ -14,12 +14,9 @@ extern "C" {
 /**
  * @brief 绑定本板三路 E22 USART 与 AUX。
  *
- * App 只通过这些函数碰硬件，不再直接使用 HAL 句柄或 uart_rx。
+ * App 只通过这些函数碰硬件，不再直接使用 HAL 句柄。
  */
 void Board_Init(void);
-
-/* USART2 对应模块 AUX=PB5。高电平表示模块空闲。 */
-uint8_t Board_Usart2_AuxReady(void);
 
 /**
  * @brief 启动三路 Receive-to-IDLE DMA。
@@ -96,13 +93,10 @@ uint8_t Board_UsbWrite(const uint8_t *data, uint16_t len);
 /** Non-blocking USB CDC read into caller buffer. Returns bytes copied. */
 uint16_t Board_UsbRead(uint8_t *data, uint16_t max_len);
 
-uint8_t Board_UsbConfigured(void);
 uint8_t Board_UsbHostOpen(void);
 
 /** Refresh debug.usb.configured / debug.usb.dtr from the USB stack. */
 void Board_UsbUpdateDebug(void);
-
-void Board_SystemReset(void);
 
 
 #ifdef __cplusplus

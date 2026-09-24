@@ -1,7 +1,7 @@
 # 当前代码 IO 口清单
 
 > **适用范围：** STM32G431CBTx（LQFP48）遥控器发端固件。本文以 `Core/Src/gpio.c`、
-> `Core/Src/adc.c`、`Core/Src/joystick.c`、`Core/Src/usart.c`、`Core/Src/main.c` 和
+> `Core/Src/adc.c`、`App/Src/joystick.c`、`Core/Src/usart.c`、`Core/Src/main.c` 和
 > `Core/Inc/main.h` 的**当前实际代码**为准。
 
 ## 使用概览
@@ -30,11 +30,11 @@
 
 `debug.joystick.filtered` 保存一阶低通滤波后的 ADC 值（约 50% 上次值、50% 新样本）。`debug.joystick.value` 保存对应的中心校准映射结果（`int16_t`）：ADC `0` → `-100`、自动记录的各轴中位值 → `0`、ADC `4095` → `+100`。上电后约 320 ms 内请保持摇杆居中；期间输出保持为 `0`。当前不包含死区或端点行程校准。
 
-详细的遥控器输入约束和软件行为见 [`Core/Src/controlIO.md`](Core/Src/controlIO.md)。
+详细的遥控器输入约束和软件行为见 [`controlIO.md`](controlIO.md)。
 
 ## 四路两档拨杆输入
 
-八个拨杆触点均为 `GPIO_MODE_INPUT` + `GPIO_PULLUP`，通过开关接地后读取低电平。`Core/Src/toggle_switch.c` 每 10 ms 解码一次，结果保存在 `debug.toggle_switch.state`；组包时使用该稳定值，并经 E34-1 / USART1 发送。
+八个拨杆触点均为 `GPIO_MODE_INPUT` + `GPIO_PULLUP`，通过开关接地后读取低电平。`App/Src/toggle_switch.c` 每 10 ms 解码一次，结果保存在 `debug.toggle_switch.state`；组包时使用该稳定值，并经 E34-1 / USART1 发送。
 
 | 拨杆 | A 触点 / 引脚 | B 触点 / 引脚 | A=低、B=高 | A=高、B=高 | A=高、B=低 | A=低、B=低 |
 |---|---|---|---|---|---|---|
@@ -47,7 +47,7 @@
 
 ## 四个按键输入
 
-四个按键均使用 `GPIO_MODE_INPUT + GPIO_PULLUP`。默认释放时输入为高电平；按下时触点接地，输入为低电平。`Core/Src/button.c` 在每次 100 Hz 输入扫描中读取并消抖；每次有效按下会翻转对应的锁存状态，组包时使用 `debug.button.toggle` 并经 E34-1 / USART1 持续发送。
+四个按键均使用 `GPIO_MODE_INPUT + GPIO_PULLUP`。默认释放时输入为高电平；按下时触点接地，输入为低电平。`App/Src/button.c` 在每次 100 Hz 输入扫描中读取并消抖；每次有效按下会翻转对应的锁存状态，组包时使用 `debug.button.toggle` 并经 E34-1 / USART1 持续发送。
 
 | 按键 | MCU 引脚 | 位置/用途 | 释放状态 | 按下状态 | 物理消抖字段 | 锁存发送字段 |
 |---|---|---|---|---|---|
@@ -63,17 +63,17 @@
 板上焊的是三路不同频段 E22 LoRa（半双工）：USART1=`E22-400`，USART2=`E22-900`，USART3=`E22-230`。CubeMX 初始串口仍是 **9600 8N1**，因为 E22 配置模式的 UART **固定 9600**。`App_Init` 里 `E22Provisioning_Run()` 会：
 
 1. `M0=0`、`M1=1` 进配置模式（不要用 `M0=M1=1`，那是 E34）；
-2. 9600 写 `C0 00 09 ...`，目标 `REG0=0xE6`（工作串口 115200 8N1 + 空中 38.4 kbps）、`REG3=0x00` 透传；
-3. 回到透传 `M0=M1=0` 后，仅对 C1 成功的通道把 MCU `set_baud(115200)`。
+2. 9600 写 `C0 00 09 ...`，目标 `REG0=0xE7`（工作串口 115200 8N1 + 空中 62.5 kbps）、`REG3=0x43` 定点，信道 23；
+3. 回到工作模式 `M0=M1=0` 后，仅对 C1 成功的通道把 MCU `set_baud(115200)`。
 
-控制帧仍只走 **USART1**。USART1 配置成功后发送周期 10 ms，失败则保持 9600 / 20 ms。USART2、USART3 参与上电配置，暂不发送控制帧，也未启动接收。
+控制帧仍只走 **USART1**。USART1 配置成功后发送周期 10 ms，失败则保持 9600 / 20 ms。USART2、USART3 只参与上电配置。USART1 平时只发控制帧；配对事务期间会开 Idle 接收应答。
 
 ### 模块 1：USART1 / E22-400
 
 | E22 信号 | MCU 引脚 | 配置 | 当前用途 |
 |---|---|---|---|
 | MCU TX / 模块 RXD | **PA9** | USART1_TX，AF7、无上下拉、低速 | 控制帧主发送链路。|
-| MCU RX / 模块 TXD | **PA10** | USART1_RX，AF7、无上下拉、低速 | 上电配置时收 C1；运行时不接收控制帧。|
+| MCU RX / 模块 TXD | **PA10** | USART1_RX，AF7、无上下拉、低速 | 上电配置时收 C1；配对期间收应答。不收控制帧。|
 | `M0` | **PB14** | 推挽输出、无上下拉、低速 | 上电先拉低；配置时保持 0。|
 | `M1` | **PB15** | 推挽输出、无上下拉、低速 | 上电先拉低；配置时拉高。|
 | `AUX` | **PA8** | 普通输入、无上下拉 | 配置和发送前都必须为高。|

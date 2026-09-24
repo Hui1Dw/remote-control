@@ -84,9 +84,9 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${PROJECT_SOURCE_DIR}/Core/Src/main.c
     ${PROJECT_SOURCE_DIR}/Core/Src/stm32g4xx_hal_msp.c
     ${PROJECT_SOURCE_DIR}/Core/Src/stm32g4xx_it.c
-    ${PROJECT_SOURCE_DIR}/Core/Src/control_protocol.c
-    ${PROJECT_SOURCE_DIR}/Core/Src/receiver_control.c
-    ${PROJECT_SOURCE_DIR}/Core/Src/debug.c
+    ${PROJECT_SOURCE_DIR}/App/Src/control_protocol.c
+    ${PROJECT_SOURCE_DIR}/App/Src/receiver_control.c
+    ${PROJECT_SOURCE_DIR}/App/Src/debug.c
     ${PROJECT_SOURCE_DIR}/Bsp/Src/bsp_time.cpp
     ${PROJECT_SOURCE_DIR}/Bsp/Src/bsp_gpio.cpp
     ${PROJECT_SOURCE_DIR}/Bsp/Src/bsp_usart.cpp
@@ -104,8 +104,6 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${PROJECT_SOURCE_DIR}/USB_DEVICE/App/usbd_desc.c
     ${PROJECT_SOURCE_DIR}/USB_DEVICE/App/usbd_cdc_if.c
     ${PROJECT_SOURCE_DIR}/USB_DEVICE/Target/usbd_conf.c
-    # uart_rx.c / e34_rx.c / uart2_rx.c / uart3_rx.c / rx_dispatcher.c
-    # 保留作调试旁路，不再编译，避免与 USART_c 抢 HAL 回调。
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE

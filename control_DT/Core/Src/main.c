@@ -21,10 +21,6 @@
 #include "adc.h"
 #include "usart.h"
 #include "gpio.h"
-#include "joystick.h"
-#include "toggle_switch.h"
-#include "button.h"
-#include "wireless_control.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */

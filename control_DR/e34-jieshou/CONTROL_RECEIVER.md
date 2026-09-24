@@ -8,8 +8,8 @@ UART DMA 的首个空闲接收事件也会正常提交解析，不会再丢弃�
 - `App/Src/app.c`：`App_Init` 调用 `E22Provisioning_Run()`，成功后再 `Board_UartStartRx()`。
 - `App/Src/e22_provisioning.c`：上电一次性写 E22 寄存器；只走 Board，不碰 HAL 句柄。
 - `Board/Src/board.cpp`：`HAL_UARTEx_RxEventCallback` 经 `USART_c` 直接 `ReceiverControl_PushBuffer()`。
-- `Core/Src/control_protocol.c`：9 字节控制帧的流式组帧、版本半字节检查、CRC-8/MAXIM、字段合法性检查。
-- `Core/Src/receiver_control.c`：三路独立协议解析、冗余链路选择、失效保护和控制输出。
+- `App/Src/control_protocol.c`：9 字节控制帧的流式组帧、版本半字节检查、CRC-8/MAXIM、字段合法性检查。
+- `App/Src/receiver_control.c`：三路独立协议解析、冗余链路选择、失效保护和控制输出。
 - `Core/Src/main.c`：USER CODE 只调用 `Board_Init` / `App_Init` / `App_Loop`。
 
 ## 帧验证
@@ -109,7 +109,7 @@ debug.link[0].calibration_valid
 
 USART1 不使用 SWAP。`PA9` 与旧工程 I2C2 SCL 复用，`PA8` 现为 E22-1 AUX，因此不初始化 I2C2。
 
-Watch `debug.aux_usart1/2/3` 和 `debug.e22`：配置成功后 `mcu_baud[]` 应为 115200，`readback_reg0[]` 约 `0xE6`（230 MHz 可能只保证高 5 位 `0xE0`）。
+Watch `debug.aux_usart1/2/3` 和 `debug.e22`：配置成功后 `mcu_baud[]` 应为 115200，`readback_reg0[]` 约 `0xE7`（230 MHz 可能只保证高 5 位 `0xE0`）。
 
 ## UART 接收诊断变量
 

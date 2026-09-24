@@ -16,7 +16,7 @@
 
 模块接线必须交叉：模块 TXD → MCU RX，模块 RXD ← MCU TX。这组 `M0/M1/AUX` 是本板确认值，**不要套急停工程 USART1（PB6/PB7）**。
 
-CubeMX 初始串口仍是 **9600 8N1**，因为 E22 配置模式固定 9600。`App_Init` 会先写寄存器（`REG0=0xE6`：工作串口 115200 + 空中 38.4 kbps，`REG3=0x00` 透传），C1 成功的通道再把 MCU 切到 115200，然后才启动 DMA 收包。失败通道保持 9600，不阻止另外两路收包。
+CubeMX 初始串口仍是 **9600 8N1**，因为 E22 配置模式固定 9600。`App_Init` 会先写寄存器（`REG0=0xE7`：工作串口 115200 + 空中 62.5 kbps，`REG3=0x43` 定点），C1 成功的通道再把 MCU 切到 115200，然后才启动 DMA 收包。失败通道保持 9600，不阻止另外两路收包。
 
 所有模块必须与 MCU **共地**。`M0/M1` 上电默认拉低（透传），配置时临时 `M0=0`、`M1=1`。无线两端的地址、信道、空速和串口参数必须一致。
 
@@ -135,7 +135,7 @@ debug.safe = 1;
 
 ## 4. 调试器：查看已解析的数据
 
-调试器只需 Watch 一个全局变量 `debug`（`Core/Inc/debug.h`），展开即可看到输出、三路解析结果和 UART 诊断。
+调试器只需 Watch 一个全局变量 `debug`（`App/Inc/debug.h`），展开即可看到输出、三路解析结果和 UART 诊断。
 
 所有数组第一个下标均为串口号：
 
@@ -313,13 +313,13 @@ void ReceiverControl_ApplySafeState(void)
 
 | 文件 | 作用 |
 |---|---|
-| `Core/Src/control_protocol.c` | 9 字节帧解析、CRC-8/MAXIM、字段合法性判断 |
-| `Core/Inc/control_protocol.h` | 协议字段与 CRC 接口 |
-| `Core/Src/receiver_control.c` | 三路独立解析、链路优先级、安全控制 |
-| `Core/Inc/receiver_control.h` | 输出结构与控制接口 |
-| `Core/Inc/debug.h`、`Core/Src/debug.c` | 全部公开调试状态，调试器 Watch `debug` |
-| `Core/Src/uart_rx.c` | 三路 UART Receive-to-IDLE DMA 接收、错误恢复、底层诊断 |
-| `Core/Src/main.c` | UART 初始化、主循环与字节分发 |
+| `App/Src/control_protocol.c` | 9 字节帧解析、CRC-8/MAXIM、字段合法性判断 |
+| `App/Inc/control_protocol.h` | 协议字段与 CRC 接口 |
+| `App/Src/receiver_control.c` | 三路独立解析、链路优先级、安全控制 |
+| `App/Inc/receiver_control.h` | 输出结构与控制接口 |
+| `App/Inc/debug.h`、`App/Src/debug.c` | 全部公开调试状态，调试器 Watch `debug` |
+| `Board/Src/board.cpp` | 三路 Receive-to-IDLE DMA，回调里 `ReceiverControl_PushBuffer` |
+| `Core/Src/main.c` | 时钟、GPIO/UART 初始化，主循环只调 `App_Loop()` |
 | `CONTROL_RECEIVER.md` | 接收机实现说明与补充说明 |
 
 ---

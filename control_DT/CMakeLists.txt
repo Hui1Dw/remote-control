@@ -59,6 +59,11 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/pairing_input.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/pairing_protocol.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/pairing_tx.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/button.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/joystick.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/toggle_switch.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/wireless_control.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/debug.c
 )
 
 # Add include paths

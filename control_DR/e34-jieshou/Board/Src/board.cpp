@@ -173,11 +173,6 @@ extern "C" void Board_Init(void)
     /* 引脚和 UART 由 CubeMX 的 MX_*_Init 完成。这里只确认静态对象已构造。 */
 }
 
-extern "C" uint8_t Board_Usart2_AuxReady(void)
-{
-    return radio_aux[1].is_set() ? 1U : 0U;
-}
-
 extern "C" void Board_UartStartRx(void)
 {
     restart_rx(0U, usart1);
@@ -325,11 +320,6 @@ extern "C" uint16_t Board_UsbRead(uint8_t *data, uint16_t max_len)
     return Bsp_UsbRead(data, max_len);
 }
 
-extern "C" uint8_t Board_UsbConfigured(void)
-{
-    return Bsp_UsbConfigured();
-}
-
 extern "C" uint8_t Board_UsbHostOpen(void)
 {
     return Bsp_UsbHostOpen();
@@ -340,12 +330,6 @@ extern "C" void Board_UsbUpdateDebug(void)
     debug.usb.configured = Bsp_UsbConfigured();
     debug.usb.dtr = Bsp_UsbHostOpen();
 }
-
-extern "C" void Board_SystemReset(void)
-{
-    NVIC_SystemReset();
-}
-
 
 static uint8_t valid_pairing_slot(uint8_t slot)
 {

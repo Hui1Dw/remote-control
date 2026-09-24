@@ -17,16 +17,14 @@ set(MX_Include_Dirs
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/CMSIS/Include
 )
 
-# STM32CubeMX generated application sources
+# STM32CubeMX generated application sources.
+# Business sources (joystick/button/toggle/wireless/debug) are NOT listed here.
+# They live under App/ and are added by the parent CMakeLists.txt, so a CubeMX
+# regen of this file does not own them.
 set(MX_Application_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/main.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/adc.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/button.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/debug.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/gpio.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/joystick.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/toggle_switch.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/wireless_control.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/usart.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/stm32g4xx_it.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/stm32g4xx_hal_msp.c
