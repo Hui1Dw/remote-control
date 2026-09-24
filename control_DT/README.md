@@ -31,7 +31,7 @@
 2. 上电后先保持摇杆居中约 320 ms，确认 `debug.joystick.calibration.valid` 变为 `1`；随后在调试器中观察 `debug.joystick.raw`、`debug.joystick.filtered` 和 `debug.joystick.value`。中位的 `debug.joystick.value` 应接近 0，满行程应接近 -100 和 +100。
 3. 在调试器中观察 `debug.toggle_switch.state.switch_1` 至 `switch_4`：A 档为 `-1`，B 档为 `1`；两个触点同时为高或同时为低均会显示无效值 `2`。
 4. 观察 `debug.button.physical.sw1` 至 `sw4`：释放为 `0`，按下为 `1`；再观察 `debug.button.toggle.sw1` 至 `sw4`，每次有效按下应在 `0` / `1` 间翻转并在松手后保持。物理状态更新经过约 20～30 ms 消抖。
-5. 先看 `debug.e22.ok[0]` 与 `debug.e22.mcu_baud[0]`；USART1 成功后 `tx_period_ms` 应为 10，`tx_success_count` 约 100 Hz。再按 [`无线控制帧协议.md`](无线控制帧协议.md) 核对 14 字节控制帧、序号、CRC 和接收端失联保护。
+5. 先看 `debug.e22.ok[0]` 与 `debug.e22.mcu_baud[0]`；USART1 成功后 `tx_period_ms` 应为 10，`tx_success_count` 约 100 Hz。再按 [`无线控制帧协议.md`](无线控制帧协议.md) 核对 9 字节控制帧、序号低 4 位、CRC-8 和接收端失联保护。
 
 ## 相关文档
 

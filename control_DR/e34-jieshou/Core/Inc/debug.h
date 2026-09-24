@@ -23,7 +23,7 @@ typedef struct
     uint8_t calibration_valid;        /* 发送端摇杆中心校准有效位，对应 BTN.bit4 */
     uint32_t valid_frame_count;       /* CRC 正确帧累计次数 */
     uint32_t crc_error_count;         /* CRC 错误累计次数 */
-    uint32_t format_error_count;      /* 帧头/版本/类型/长度错误累计次数 */
+    uint32_t format_error_count;      /* 解析器格式错误；版本半字节不对只重新搜帧，不计入 */
     uint32_t invalid_control_count;   /* 控制内容不安全的帧累计次数 */
 } DebugLink_t;
 
@@ -31,7 +31,7 @@ typedef struct
 {
     uint32_t dma_event_count;         /* UART IDLE/DMA 接收事件次数 */
     uint32_t dma_byte_count;          /* 已提交给协议层的原始字节累计数 */
-    uint16_t last_dma_size;           /* 最近一次 DMA 事件字节数，控制帧通常为 14 */
+    uint16_t last_dma_size;           /* 最近一次 DMA 事件字节数，控制帧通常为 9 */
     uint32_t empty_event_count;       /* DMA 刚启动时的零字节 IDLE 事件次数 */
     uint32_t initial_sync_drop_count; /* 预留：上电同步丢弃计数，当前未写入 */
     uint32_t dma_start_ok_count;      /* Receive-to-IDLE DMA 启动成功次数 */

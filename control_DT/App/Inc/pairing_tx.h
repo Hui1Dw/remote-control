@@ -17,7 +17,7 @@ void PairingTx_Init(void);
 /**
  * @brief 在 100 Hz 扫描里消费 SW3 边沿并刷新配对 Watch。
  *
- * 进入配对号输入或空中事务后暂停 14 字节控制帧。
+ * 进入配对号输入或空中事务后暂停 9 字节控制帧。
  */
 void PairingTx_Update(void);
 

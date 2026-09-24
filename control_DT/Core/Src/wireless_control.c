@@ -2,9 +2,9 @@
  * @file wireless_control.c
  * @brief E22-1 wireless control-frame packer and USART1 sender.
  *
- * Application payload remains the fixed 14-byte format documented in
+ * Application payload is the fixed 9-byte v2 format documented in
  * ../../无线控制帧协议.md. In E22 fixed-point mode the UART packet is
- * destination ADDH/ADDL/CHAN plus that 14-byte payload. Input values are
+ * destination ADDH/ADDL/CHAN plus that 9-byte payload. Input values are
  * taken only from the processed, debounced public state objects. USART1 is
  * the primary E22 link: PA9/PA10 are TX/RX and PA8 (AUX) must be high before
  * a frame is submitted. USART1 TX is interrupt-driven; the static TX buffer
@@ -20,16 +20,13 @@
 #include "debug.h"
 
 #define WIRELESS_CONTROL_SOF0              0xA5U
-#define WIRELESS_CONTROL_SOF1              0x5AU
-#define WIRELESS_CONTROL_PROTOCOL_VERSION  0x01U
-#define WIRELESS_CONTROL_FRAME_TYPE         0x01U
-#define WIRELESS_CONTROL_PAYLOAD_LENGTH     0x06U
+#define WIRELESS_CONTROL_VERSION           0x02U
+#define WIRELESS_CONTROL_SEQUENCE_MASK     0x0FU
 
 #define WIRELESS_CONTROL_UART_TIMEOUT_MS    20U
 
-#define WIRELESS_CONTROL_OFFSET_VERSION     2U
-#define WIRELESS_CONTROL_OFFSET_CRC_LOW     12U
-#define WIRELESS_CONTROL_CRC_INPUT_LENGTH   10U
+#define WIRELESS_CONTROL_CRC_OFFSET         8U
+#define WIRELESS_CONTROL_CRC_LENGTH         7U
 
 static uint32_t wireless_control_tx_tick;
 static uint32_t wireless_control_tx_period_ms = WIRELESS_CONTROL_TX_PERIOD_DEFAULT_MS;
@@ -43,9 +40,10 @@ static uint16_t wireless_control_destination;
 static uint8_t wireless_control_tx_packet[WIRELESS_E22_FIXED_HEADER_SIZE +
                                           WIRELESS_CONTROL_FRAME_SIZE];
 
-static uint16_t WirelessControl_CalculateCrc16(const uint8_t *data, uint8_t length)
+/* CRC-8/MAXIM: init 0x00, reflected poly 0x8C. Same bytes as the receiver. */
+static uint8_t WirelessControl_CalculateCrc8(const uint8_t *data, uint8_t length)
 {
-  uint16_t crc = 0xFFFFU;
+  uint8_t crc = 0x00U;
 
   while (length > 0U)
   {
@@ -57,13 +55,13 @@ static uint16_t WirelessControl_CalculateCrc16(const uint8_t *data, uint8_t leng
 
     for (bit_index = 0U; bit_index < 8U; bit_index++)
     {
-      if ((crc & 0x0001U) != 0U)
+      if ((crc & 0x01U) != 0U)
       {
-        crc = (crc >> 1U) ^ 0xA001U;
+        crc = (uint8_t)((crc >> 1U) ^ 0x8CU);
       }
       else
       {
-        crc >>= 1U;
+        crc = (uint8_t)(crc >> 1U);
       }
     }
   }
@@ -139,37 +137,30 @@ static uint8_t WirelessControl_BuildButtonsStatusByte(void)
 
 static void WirelessControl_BuildFrame(uint8_t *frame)
 {
-  uint16_t crc;
-
   frame[0] = WIRELESS_CONTROL_SOF0;
-  frame[1] = WIRELESS_CONTROL_SOF1;
-  frame[2] = WIRELESS_CONTROL_PROTOCOL_VERSION;
-  frame[3] = WIRELESS_CONTROL_FRAME_TYPE;
-  frame[4] = wireless_control_sequence;
-  frame[5] = WIRELESS_CONTROL_PAYLOAD_LENGTH;
+  /* 高 4 位版本固定为 2；线上序号只取内部计数器的低 4 位。 */
+  frame[1] = (uint8_t)((WIRELESS_CONTROL_VERSION << 4U) |
+                       (wireless_control_sequence & WIRELESS_CONTROL_SEQUENCE_MASK));
 
   if (debug.joystick.calibration.valid != 0U)
   {
-    frame[6] = WirelessControl_ClampAxis(debug.joystick.value.left_y);
-    frame[7] = WirelessControl_ClampAxis(debug.joystick.value.left_x);
-    frame[8] = WirelessControl_ClampAxis(debug.joystick.value.right_y);
-    frame[9] = WirelessControl_ClampAxis(debug.joystick.value.right_x);
+    frame[2] = WirelessControl_ClampAxis(debug.joystick.value.left_y);
+    frame[3] = WirelessControl_ClampAxis(debug.joystick.value.left_x);
+    frame[4] = WirelessControl_ClampAxis(debug.joystick.value.right_y);
+    frame[5] = WirelessControl_ClampAxis(debug.joystick.value.right_x);
   }
   else
   {
-    frame[6] = 0U;
-    frame[7] = 0U;
-    frame[8] = 0U;
-    frame[9] = 0U;
+    frame[2] = 0U;
+    frame[3] = 0U;
+    frame[4] = 0U;
+    frame[5] = 0U;
   }
 
-  frame[10] = WirelessControl_BuildSwitchByte();
-  frame[11] = WirelessControl_BuildButtonsStatusByte();
-
-  crc = WirelessControl_CalculateCrc16(&frame[WIRELESS_CONTROL_OFFSET_VERSION],
-                                       WIRELESS_CONTROL_CRC_INPUT_LENGTH);
-  frame[WIRELESS_CONTROL_OFFSET_CRC_LOW] = (uint8_t)(crc & 0x00FFU);
-  frame[WIRELESS_CONTROL_OFFSET_CRC_LOW + 1U] = (uint8_t)(crc >> 8U);
+  frame[6] = WirelessControl_BuildSwitchByte();
+  frame[7] = WirelessControl_BuildButtonsStatusByte();
+  frame[WIRELESS_CONTROL_CRC_OFFSET] = WirelessControl_CalculateCrc8(
+      &frame[1], WIRELESS_CONTROL_CRC_LENGTH);
 }
 
 static uint8_t WirelessControl_TxReady(void)

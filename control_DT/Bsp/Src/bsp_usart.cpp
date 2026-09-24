@@ -82,7 +82,7 @@ bool USART_c::send(const uint8_t *data, uint16_t size, uint32_t timeout_ms)
         return true;
 
     case TxType_t::DMA:
-        /* TX DMA 本步不做：14 字节 IT 已足够把扫描从阻塞里解放出来。 */
+        /* TX DMA 本步不做：12 字节定点包的 IT 发送已足够把扫描从阻塞里解放出来。 */
         return false;
     }
 

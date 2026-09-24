@@ -30,6 +30,37 @@ uint16_t ControlProtocol_Crc16Modbus(const uint8_t *data, uint16_t length)
     return crc;
 }
 
+
+uint8_t ControlProtocol_Crc8Maxim(const uint8_t *data, uint16_t length)
+{
+    uint16_t i;
+    uint8_t bit;
+    uint8_t crc = 0x00U;
+
+    if (data == 0)
+    {
+        return crc;
+    }
+
+    for (i = 0U; i < length; ++i)
+    {
+        crc ^= data[i];
+        for (bit = 0U; bit < 8U; ++bit)
+        {
+            if ((crc & 0x01U) != 0U)
+            {
+                crc = (uint8_t)((crc >> 1U) ^ 0x8CU);
+            }
+            else
+            {
+                crc = (uint8_t)(crc >> 1U);
+            }
+        }
+    }
+
+    return crc;
+}
+
 void ControlProtocol_ParserInit(ControlProtocol_Parser *parser)
 {
     if (parser != 0)
@@ -53,8 +84,8 @@ ControlProtocol_ParseResult ControlProtocol_ParserPushByte(
     uint8_t byte,
     ControlProtocol_Frame *frame)
 {
-    uint16_t received_crc;
-    uint16_t calculated_crc;
+    uint8_t received_crc;
+    uint8_t calculated_crc;
 
     if (parser == 0 || frame == 0)
     {
@@ -70,9 +101,10 @@ ControlProtocol_ParseResult ControlProtocol_ParserPushByte(
         return CONTROL_PROTOCOL_NO_FRAME;
     }
 
+    /* Second byte is VER:4 SEQ:4. A wrong version is not a committed frame. */
     if (parser->length == 1U)
     {
-        if (byte == CONTROL_PROTOCOL_HEADER_1)
+        if ((uint8_t)(byte >> 4U) == CONTROL_PROTOCOL_VERSION)
         {
             parser->bytes[parser->length++] = byte;
         }
@@ -85,23 +117,14 @@ ControlProtocol_ParseResult ControlProtocol_ParserPushByte(
 
     parser->bytes[parser->length++] = byte;
 
-    /* Reject an invalid fixed header as early as possible and keep scanning. */
-    if ((parser->length == 3U && parser->bytes[2] != CONTROL_PROTOCOL_VERSION) ||
-        (parser->length == 4U && parser->bytes[3] != CONTROL_PROTOCOL_REALTIME_TYPE) ||
-        (parser->length == 6U && parser->bytes[5] != CONTROL_PROTOCOL_PAYLOAD_LENGTH))
-    {
-        ControlProtocol_ParserRestart(parser, byte);
-        return CONTROL_PROTOCOL_BAD_FORMAT;
-    }
-
     if (parser->length < CONTROL_PROTOCOL_FRAME_SIZE)
     {
         return CONTROL_PROTOCOL_NO_FRAME;
     }
 
-    received_crc = (uint16_t)parser->bytes[12] |
-                   ((uint16_t)parser->bytes[13] << 8U);
-    calculated_crc = ControlProtocol_Crc16Modbus(&parser->bytes[2], 10U);
+    received_crc = parser->bytes[CONTROL_PROTOCOL_CRC_OFFSET];
+    calculated_crc = ControlProtocol_Crc8Maxim(&parser->bytes[1],
+                                               CONTROL_PROTOCOL_CRC_LENGTH);
 
     if (received_crc != calculated_crc)
     {
@@ -109,13 +132,13 @@ ControlProtocol_ParseResult ControlProtocol_ParserPushByte(
         return CONTROL_PROTOCOL_BAD_CRC;
     }
 
-    frame->sequence = parser->bytes[4];
-    frame->left_y   = (int8_t)parser->bytes[6];
-    frame->left_x   = (int8_t)parser->bytes[7];
-    frame->right_y  = (int8_t)parser->bytes[8];
-    frame->right_x  = (int8_t)parser->bytes[9];
-    frame->switches = parser->bytes[10];
-    frame->buttons  = parser->bytes[11];
+    frame->sequence = (uint8_t)(parser->bytes[1] & CONTROL_PROTOCOL_SEQUENCE_MASK);
+    frame->left_y   = (int8_t)parser->bytes[2];
+    frame->left_x   = (int8_t)parser->bytes[3];
+    frame->right_y  = (int8_t)parser->bytes[4];
+    frame->right_x  = (int8_t)parser->bytes[5];
+    frame->switches = parser->bytes[6];
+    frame->buttons  = parser->bytes[7];
     parser->length = 0U;
 
     return CONTROL_PROTOCOL_VALID_FRAME;

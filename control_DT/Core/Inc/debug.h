@@ -45,9 +45,9 @@ typedef struct
   struct
   {
     WirelessControlDiagnostics_t diagnostics;          /* E34-1 提交成功/失败/忙跳过统计；last_tx_status 0=成功 */
-    uint8_t last_frame[WIRELESS_CONTROL_FRAME_SIZE];   /* 最近一次组装的 14 字节控制 payload */
+    uint8_t last_frame[WIRELESS_CONTROL_FRAME_SIZE];   /* 最近一次组装的 9 字节控制 payload */
     uint8_t last_frame_valid;                           /* 1=至少成功组过一帧 */
-    uint8_t last_tx_size;                               /* 最近一次提交给 E22 的 UART 长度，定点应为 17 */
+    uint8_t last_tx_size;                               /* 最近一次提交给 E22 的 UART 长度，定点应为 12 */
     uint16_t destination_address;                       /* 定点目标 ADDH/ADDL，出厂 0x0207 */
     uint8_t destination_channel;                        /* 定点目标 CHAN，当前 23 */
   } wireless;                                          /* E22-1 / USART1 发送诊断 */
@@ -65,7 +65,7 @@ typedef struct
     uint8_t last_confirmed_pair_number;  /* 最近一次确认成功的配对号 */
     uint8_t last_prepare_valid;          /* 1=已组出 17 字节 PREPARE */
     uint8_t last_prepare_build_ok;       /* 1=地址映射和 CRC 组帧成功 */
-    uint8_t tx_quiet;                    /* 1=配对号输入或空中事务期间暂停 14 字节控制帧 */
+    uint8_t tx_quiet;                    /* 1=配对号输入或空中事务期间暂停 9 字节控制帧 */
     uint8_t txn_state;                   /* 0空闲 1发PREPARE 2等COMMITTED 3等VERIFY/OK 4成功 5失败 */
     uint8_t last_rx_command;             /* 最近一次配对回包命令：2=ACK 3=COMMITTED 5=OK */
     uint8_t last_error;                  /* 0无 1非出厂 2组帧失败 3ACK超时 4COMMITTED超时 5VERIFY超时 6E22 7Flash */

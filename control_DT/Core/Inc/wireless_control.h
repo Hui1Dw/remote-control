@@ -7,7 +7,7 @@ extern "C" {
 
 #include <stdint.h>
 
-#define WIRELESS_CONTROL_FRAME_SIZE  14U
+#define WIRELESS_CONTROL_FRAME_SIZE  9U
 #define WIRELESS_E22_FIXED_HEADER_SIZE 3U
 #define WIRELESS_E22_TARGET_CHANNEL    23U
 #define WIRELESS_CONTROL_TX_PERIOD_DEFAULT_MS 20U
@@ -54,7 +54,7 @@ void WirelessControl_SetDestination(uint16_t address);
 void WirelessControl_SetTxPeriodMs(uint32_t period_ms);
 
 /**
- * @brief 允许或暂停 14 字节控制帧发送。
+ * @brief 允许或暂停 9 字节控制帧发送。
  *
  * 配对号输入期间必须暂停，使接收机按既有 300 ms 失联进入安全态。
  * enabled=0 时跳过当前周期，不排队、不覆盖。

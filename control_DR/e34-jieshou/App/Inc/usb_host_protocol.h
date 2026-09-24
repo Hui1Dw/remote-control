@@ -7,7 +7,7 @@ extern "C" {
 
 #include <stdint.h>
 
-/* Receiver -> host CDC stream. Distinct from the on-air A5 5A control frame. */
+/* Receiver -> host CDC stream. Distinct from the on-air 9-byte A5 control frame. */
 #define USB_HOST_PROTOCOL_SOF0            0xB5U
 #define USB_HOST_PROTOCOL_SOF1            0x5BU
 #define USB_HOST_PROTOCOL_VERSION         0x01U

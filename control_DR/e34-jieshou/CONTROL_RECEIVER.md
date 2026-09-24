@@ -1,6 +1,6 @@
 # 控制帧接收机实现说明
 
-本工程保持为**接收机**：USART1、USART2、USART3 分别从三路 E22 接收同一 14 字节控制帧。CubeMX UART 仍从 9600 启动；`App_Init` 先配置 E22 再启动 DMA。原有 `ABCD` / `1234` 急停字符串状态机已经移除。
+本工程保持为**接收机**：USART1、USART2、USART3 分别从三路 E22 接收同一 9 字节控制帧。CubeMX UART 仍从 9600 启动；`App_Init` 先配置 E22 再启动 DMA。原有 `ABCD` / `1234` 急停字符串状态机已经移除。
 UART DMA 的首个空闲接收事件也会正常提交解析，不会再丢弃发送端的第一帧。
 
 ## 实现位置
@@ -8,18 +8,18 @@ UART DMA 的首个空闲接收事件也会正常提交解析，不会再丢弃�
 - `App/Src/app.c`：`App_Init` 调用 `E22Provisioning_Run()`，成功后再 `Board_UartStartRx()`。
 - `App/Src/e22_provisioning.c`：上电一次性写 E22 寄存器；只走 Board，不碰 HAL 句柄。
 - `Board/Src/board.cpp`：`HAL_UARTEx_RxEventCallback` 经 `USART_c` 直接 `ReceiverControl_PushBuffer()`。
-- `Core/Src/control_protocol.c`：14 字节控制帧的流式组帧、固定字段检查、CRC-16/MODBUS、字段合法性检查。
+- `Core/Src/control_protocol.c`：9 字节控制帧的流式组帧、版本半字节检查、CRC-8/MAXIM、字段合法性检查。
 - `Core/Src/receiver_control.c`：三路独立协议解析、冗余链路选择、失效保护和控制输出。
 - `Core/Src/main.c`：USER CODE 只调用 `Board_Init` / `App_Init` / `App_Loop`。
 
 ## 帧验证
 
-每一路 UART 都有独立解析器，支持连续数据、半帧和噪声中的 `A5 5A` 重同步。仅在满足以下条件后保存控制帧：
+每一路 UART 都有独立解析器，支持连续数据、半帧和噪声中的 `A5` 重同步。仅在满足以下条件后保存控制帧：
 
-1. 固定帧头 `A5 5A`；
-2. 版本、类型、载荷长度依次为 `01`、`01`、`06`；
-3. 对偏移 `2..11` 的 10 个字节计算 CRC-16/MODBUS（初值 `0xFFFF`、多项式 `0xA001`）；
-4. CRC 与低字节在前的 `CRC_L CRC_H` 一致。
+1. 帧头 `A5`；
+2. 下一字节高 4 位为版本 `2`，低 4 位为序号 `0～15`。版本不对则从当前字节重新搜帧头，不记格式错误，也不进入失联安全态；
+3. 收满 9 字节后，对偏移 `1..7` 计算 CRC-8/MAXIM（初值 `0x00`、反射多项式 `0x8C`）；
+4. CRC 与偏移 8 的单字节一致。
 
 此外，接收机将摇杆范围限制为 `-100..100`，四个拨杆均限制为 `01`（A）或 `10`（B），并要求 `BTN.bit4=1`、`BTN.bit5..7=0`。
 
@@ -64,7 +64,7 @@ void ReceiverControl_ApplySafeState(void)
 
 ## 已解析控制数据（调试器直接观察）
 
-调试器 Watch `debug`。以下数组下标 `0/1/2` 分别对应 USART1/USART2/USART3。只有帧头、版本、类型、长度和 CRC 均正确后才会更新：
+调试器 Watch `debug`。以下数组下标 `0/1/2` 分别对应 USART1/USART2/USART3。只有帧头、版本半字节和 CRC-8 均正确后才会更新：
 
 ```c
 debug.link[0].last_frame.sequence
@@ -133,7 +133,7 @@ Watch `debug.aux_usart1/2/3` 和 `debug.e22`：配置成功后 `mcu_baud[]` 应�
 
 - `debug.uart[x].irq_count`：UART 外设中断次数；持续为 0 表示 MCU 的该 RX 引脚没有触发 UART 中断；
 - `debug.uart[x].dma_event_count`：HAL Receive-to-IDLE DMA 的有效接收事件次数；
-- `debug.uart[x].last_dma_size`：最近一次实际收到的字节数；控制帧通常为 14；
+- `debug.uart[x].last_dma_size`：最近一次实际收到的字节数；定点模式下模块已剥掉地址头，控制帧通常为 9；
 - `debug.uart[x].dma_byte_count`：通过 DMA 交给上层的累计字节数；
 - `debug.uart[x].error_irq_count`：奇偶、帧、噪声或溢出错误中断次数；
 - `debug.uart[x].last_isr`：最近一次 UART ISR 寄存器快照，供进一步硬件排查。

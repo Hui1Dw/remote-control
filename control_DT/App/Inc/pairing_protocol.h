@@ -7,7 +7,7 @@ extern "C" {
 
 #include <stdint.h>
 
-/* Pairing traffic is deliberately distinct from the 14-byte 0xA5 control
+/* Pairing traffic is deliberately distinct from the 9-byte 0xA5 control
  * protocol.  These are E22 application payload bytes; fixed-transfer address
  * and channel bytes remain outside this frame. */
 #define PAIRING_PROTOCOL_MAGIC             ((uint8_t)0xD4U)
